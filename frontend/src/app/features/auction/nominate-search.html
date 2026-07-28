@@ -1,0 +1,96 @@
+<div class="panel elev-md" style="padding: 14px">
+  <div class="title-sm" style="margin-bottom: 2px">Tocca a te.</div>
+  <p class="lead" style="margin: 0 0 10px">
+    @if (roleHint()) {
+      Si stanno comprando i <strong style="font-weight: 600">{{ roleHint()!.toLowerCase() }}</strong
+      >: puoi chiamare solo loro.
+    } @else {
+      Chiama un calciatore. Poi incrocia le dita e spera che gli altri stiano distratti.
+    }
+  </p>
+
+  <div style="display: flex; gap: 8px">
+    <input
+      class="input"
+      type="search"
+      aria-label="Cerca calciatore"
+      role="combobox"
+      aria-autocomplete="list"
+      [attr.aria-expanded]="open()"
+      [placeholder]="placeholder()"
+      [value]="query()"
+      (focus)="focus()"
+      (click)="focus()"
+      (input)="search($any($event.target).value)"
+      style="font-size: 15px; min-height: 42px"
+    />
+    @if (query()) {
+      <button
+        type="button"
+        class="btn btn-secondary"
+        aria-label="Svuota la ricerca"
+        (click)="clear()"
+        style="min-height: 42px; padding-inline: 14px"
+      >
+        ×
+      </button>
+    }
+  </div>
+
+  @if (open()) {
+    <div class="row" style="margin-top: 10px; gap: 6px">
+      <span class="kicker">{{ listLabel() }}</span>
+      @if (loading()) {
+        <span class="live-dot"></span>
+      }
+    </div>
+
+    @if (results().length) {
+      <div
+        class="scroll-y"
+        style="margin-top: 6px; display: flex; flex-direction: column; gap: 2px; max-height: 340px"
+        role="listbox"
+      >
+        @for (row of results(); track row.player.id) {
+          <button
+            type="button"
+            class="pick pick-row"
+            role="option"
+            [attr.aria-disabled]="!row.callable"
+            [disabled]="!row.callable"
+            (click)="call(row)"
+          >
+            <app-role-chip [role]="row.player.role" />
+            <span class="grow ellipsis" style="font-weight: 500; font-size: 14px">
+              {{ row.player.name }}
+            </span>
+            <span class="hint">{{ row.player.team }}</span>
+            @if (row.blocked) {
+              <span class="hint" style="white-space: nowrap">{{ row.blocked }}</span>
+            } @else {
+              <span
+                class="num"
+                style="font-weight: 600; font-size: 14px; color: var(--color-accent-400)"
+              >
+                {{ row.player.quotation }}
+              </span>
+            }
+          </button>
+        }
+      </div>
+    } @else if (noResults()) {
+      <div class="note" style="margin-top: 6px; font-size: 13px">
+        @if (roleHint()) {
+          Nessun {{ roleHintSingular()!.toLowerCase() }} con questo nome. Ora si comprano solo
+          {{ roleHint()!.toLowerCase() }}: chi cerchi potrebbe arrivare più tardi.
+        } @else {
+          Nessuno con questo nome. O è già stato preso, o non esiste.
+        }
+      </div>
+    } @else if (!loading()) {
+      <div class="note" style="margin-top: 6px; font-size: 13px">
+        Nessun calciatore disponibile in questo reparto.
+      </div>
+    }
+  }
+</div>

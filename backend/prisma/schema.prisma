@@ -1,0 +1,257 @@
+// Prisma schema — Fantasta Auction
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  P // Portiere
+  D // Difensore
+  C // Centrocampista
+  A // Attaccante
+}
+
+enum CallOrder {
+  fixed // per ruolo: P -> D -> C -> A
+  free  // qualsiasi ruolo con slot libero
+}
+
+/// Da dove parte il prezzo di una chiamata (regola di lega, non scelta del chiamante)
+enum StartPriceMode {
+  fixed      // sempre `startPrice` crediti
+  quotation  // la quotazione di listone del calciatore
+}
+
+/// Stessi valori di `AuctionStatus` nel contratto socket (dto/events.ts).
+enum AuctionStatus {
+  IDLE
+  BIDDING
+  /// lotto appena chiuso: la sala guarda il risultato prima del turno successivo
+  ASSIGNED
+  PAUSED
+  /// finestra di svincolo del mercato di riparazione: ogni squadra taglia dalla
+  /// propria rosa. La chiude `admin:start`, che riapre l'asta sui buchi creati
+  RELEASING
+  /// svincoli finali: rose da completare a 1 credito, senza asta
+  FILLING
+  FINISHED
+}
+
+/// Quanti crediti tornano a chi taglia un calciatore nel mercato di riparazione.
+/// Stessi valori di `ReleaseRefund` nel contratto socket (dto/events.ts).
+enum ReleaseRefund {
+  none      // niente: i crediti spesi restano spesi
+  purchase  // il prezzo pagato all'asta
+  quotation // la quotazione attuale di listone
+  average   // media di prezzo e quotazione, arrotondata per difetto
+}
+
+/// Cosa racconta una riga di telecronaca. Stessi valori di `AuctionLogType` nel
+/// contratto socket (dto/events.ts), in minuscolo lì e in maiuscolo qui.
+enum AuctionLogType {
+  START
+  NOMINATE
+  BID
+  ASSIGNED
+  CLAIM
+  MANUAL
+  REOPEN
+  SKIP
+  ROLE_CLOSED
+  PAUSE
+  RESUME
+  FILLING
+  FINISHED
+  RESET
+  REPAIR_START
+  RELEASE
+  UNRELEASE
+}
+
+/// Configurazione della lega/asta (singola istanza nel boilerplate)
+model League {
+  id              String         @id @default(cuid())
+  leagueName      String         @default("La mia lega")
+  auctionName     String         @default("Asta")
+  budget          Int            @default(300)
+  slotsP          Int            @default(3)
+  slotsD          Int            @default(8)
+  slotsC          Int            @default(8)
+  slotsA          Int            @default(6)
+  callOrder       CallOrder      @default(fixed)
+  bidTimerSeconds Int            @default(5)
+  startPriceMode  StartPriceMode @default(fixed)
+  /// prezzo base della chiamata con `startPriceMode: fixed`
+  startPrice      Int            @default(1)
+  /// ordine dei turni: array di participantId
+  turnOrder       String[]       @default([])
+  /// reparti chiusi in anticipo dall'admin (callOrder fixed): non tornano all'asta,
+  /// gli slot rimasti si riempiono negli svincoli finali a 1 credito
+  closedRoles     Role[]         @default([])
+  status          AuctionStatus  @default(IDLE)
+  /// rimborso degli svincoli nel mercato di riparazione (regola di lega)
+  releaseRefund   ReleaseRefund  @default(purchase)
+  /// 0 = asta iniziale; incrementa a ogni `admin:startRepair`
+  repairRound     Int            @default(0)
+  /// ultimo import del listone (mostrato nella tab Listone dell'admin)
+  lastImportName  String?
+  lastImportAt    DateTime?
+  lastImportCount Int            @default(0)
+  participants    Participant[]
+  acquisitions    Acquisition[]
+  releases        Release[]
+  log             AuctionLogEntry[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model Participant {
+  id           String        @id @default(cuid())
+  leagueId     String
+  league       League        @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  name         String
+  teamName     String
+  avatarUrl    String?
+  /// colore identità squadra (token Nocturne lato UI)
+  color        String?
+  /// codice d'accesso a 6 caratteri: si detta a voce quando qualcuno ha perso il
+  /// link. Non esce MAI verso i client non-admin (vedi AuctionGateway.broadcastState).
+  accessCode   String
+  /// credenziale del magic link (`/j/<magicToken>`), ~32 caratteri url-safe.
+  /// **Durevole**: lo stesso link deve funzionare la sera dell'asta e a gennaio nel
+  /// mercato di riparazione, quindi non si consuma al primo uso. Si revoca
+  /// rigenerandolo (`POST /participants/:id/regenerate-link`). Come `accessCode`,
+  /// esce solo verso la stanza degli admin.
+  magicToken   String        @unique
+  /// Generazione delle credenziali: entra nel JWT di sessione e viene incrementata
+  /// da ogni rigenerazione di codice o link. È la revoca — un JWT emesso con una
+  /// versione vecchia non vale più, senza tabella di sessioni da tenere pulita.
+  tokenVersion Int           @default(0)
+  budget       Int           @default(300) // crediti RESIDUI
+  /// Somma algebrica dei movimenti di credito che NON sono acquisti d'asta:
+  /// le ricariche di `admin:startRepair` e la differenza fra il rimborso di uno
+  /// svincolo e il prezzo pagato (`refund - price`).
+  ///
+  /// Serve perché con `releaseRefund` diverso da `purchase` il vecchio invariante
+  /// `budget + speso = budget di lega` si rompe. Quello vero è:
+  ///
+  ///     budget = League.budget + creditAdjustment - speso
+  ///
+  /// ed è su questo che `RulesService.rebalanceBudgets` ricalcola i residui
+  /// quando l'admin cambia il tetto di lega a mercato aperto.
+  creditAdjustment Int        @default(0)
+  acquisitions Acquisition[]
+  releases     Release[]
+  createdAt    DateTime      @default(now())
+
+  @@unique([leagueId, accessCode])
+}
+
+model Player {
+  /// intero: è la chiave che viaggia sul socket (`playerId`) e nel listone della UI
+  id           Int           @id @default(autoincrement())
+  /// id originale dal file Fantacalcio.it (se presente)
+  externalId   Int?          @unique
+  name         String
+  realTeam     String
+  role         Role
+  quotation    Int           @default(1) // Qt.A
+  fvm          Int?          // Fantavalore di Mercato
+  acquisitions Acquisition[]
+  releases     Release[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@unique([name, realTeam])
+  @@index([role])
+  @@index([quotation])
+}
+
+/// Assegnazione di un giocatore a un partecipante a fine lotto
+model Acquisition {
+  id            String      @id @default(cuid())
+  leagueId      String
+  league        League      @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  playerId      Int
+  player        Player      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  price         Int
+  /// chi aveva chiamato il lotto (null per svincoli e assegnazioni manuali):
+  /// serve a `admin:reopenLot` per restituire la chiamata a chi l'aveva fatta.
+  /// Nessuna relazione: il partecipante può essere stato cancellato nel frattempo.
+  nominatedById String?
+  createdAt     DateTime    @default(now())
+
+  @@unique([leagueId, playerId]) // un giocatore assegnabile una sola volta per lega
+  @@index([participantId])
+}
+
+/// Svincolo di riparazione: un calciatore tagliato dalla rosa nella finestra
+/// `RELEASING`. L'`Acquisition` corrispondente viene **cancellata** (il vincolo
+/// unico `(leagueId, playerId)` deve restare libero perché il calciatore torni
+/// all'asta e possa essere ricomprato), quindi è questa riga a conservare quel
+/// che serviva:
+///
+/// - `price` e `refund` insieme, perché con `releaseRefund` diverso da
+///   `purchase` non coincidono e `unrelease` deve saper tornare indietro esatto;
+/// - `nominatedById`, così un taglio annullato non fa perdere la memoria di chi
+///   aveva chiamato il lotto (serve ad `admin:reopenLot`).
+model Release {
+  id            String      @id @default(cuid())
+  leagueId      String
+  league        League      @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  playerId      Int
+  player        Player      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  /// prezzo a cui era stato acquistato
+  price         Int
+  /// crediti restituiti al momento del taglio (vedi `League.releaseRefund`)
+  refund        Int
+  /// chi aveva chiamato il lotto quando fu comprato, per non perderlo nell'annullamento
+  nominatedById String?
+  /// round di riparazione in cui è stato tagliato (`League.repairRound`)
+  repairRound   Int
+  createdAt     DateTime    @default(now())
+
+  /// una finestra di svincolo per round, quindi un calciatore si taglia una volta
+  @@unique([leagueId, playerId, repairRound])
+  @@index([participantId])
+}
+
+/// Telecronaca dell'asta: giornale **append-only** di quel che è successo in sala.
+/// Non è uno stato da cui ricostruire l'asta (quello sono `Acquisition` + `League`):
+/// è la cronaca, e resta com'è scritta anche quando un lotto viene riaperto.
+///
+/// Nomi di squadra e calciatore sono **denormalizzati** e non ci sono relazioni:
+/// una riga deve restare leggibile anche dopo che il partecipante è stato cancellato
+/// (stessa scelta di `Acquisition.nominatedById`).
+model AuctionLogEntry {
+  id            String         @id @default(cuid())
+  leagueId      String
+  league        League         @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  /// progressivo per lega assegnato in memoria: ordina la cronaca e fa da cursore
+  /// alla paginazione. Non è un autoincrement perché la scrittura è asincrona e la
+  /// riga deve avere il suo numero prima che il DB risponda.
+  seq           Int
+  type          AuctionLogType
+  at            DateTime
+  /// protagonista: chi compra, chi chiama, chi rilancia, chi viene saltato
+  participantId String?
+  teamName      String?
+  playerId      Int?
+  playerName    String?
+  role          Role?
+  /// crediti in gioco: prezzo d'acquisto, offerta, importo rimborsato
+  price         Int?
+  /// dettaglio per gli eventi senza protagonista (es. "Portieri, 3 slot vuoti")
+  detail        String?
+
+  @@unique([leagueId, seq])
+  @@index([leagueId, type])
+}

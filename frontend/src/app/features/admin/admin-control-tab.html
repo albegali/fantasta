@@ -1,0 +1,370 @@
+<div class="panel-md" style="padding: 16px; display: flex; flex-direction: column; gap: 14px">
+  <div class="row" style="gap: 9px">
+    <span
+      style="width: 7px; height: 7px; border-radius: 50%; background: var(--color-accent)"
+    ></span>
+    <span class="kicker">Stato asta</span>
+    <span
+      class="mono"
+      style="
+        font-weight: 600;
+        font-size: 13px;
+        letter-spacing: 0.06em;
+        color: var(--color-accent-400);
+      "
+    >
+      {{ status() }}
+    </span>
+  </div>
+
+  <div style="display: flex; gap: 8px; flex-wrap: wrap">
+    <!-- A finestra di svincolo aperta «Avvia» è il comando che la chiude. -->
+    <button type="button" class="btn btn-primary" (click)="start()">
+      @if (isReleasing()) {
+        Chiudi gli svincoli e riparti
+      } @else {
+        Avvia asta
+      }
+    </button>
+    <button type="button" class="btn btn-secondary" [disabled]="isReleasing()" (click)="pause()">
+      Pausa
+    </button>
+    <button type="button" class="btn btn-secondary" [disabled]="isReleasing()" (click)="resume()">
+      Riprendi
+    </button>
+    <button type="button" class="btn btn-secondary" [disabled]="isReleasing()" (click)="skip()">
+      Salta turno
+    </button>
+  </div>
+
+  <div class="hint">
+    Comandi emessi come eventi <strong>admin:*</strong> sul socket. Il server resta l'unico a
+    decidere.
+  </div>
+
+  @if (isReleasing()) {
+    <div class="divider-soft"></div>
+    <div>
+      <div class="kicker" style="margin-bottom: 8px">Riparazione {{ repairRound() }} in corso</div>
+      <p class="lead" style="margin: 0 0 8px">
+        Finestra di svincolo aperta: ogni squadra sta tagliando dalla propria rosa (rimborso:
+        <strong style="font-weight: 600">{{ refundLabel().toLowerCase() }}</strong
+        >). Finora <strong style="font-weight: 600">{{ releaseCount() }}</strong> svincoli. Quando
+        la sala ha finito, «Chiudi gli svincoli e riparti» rimette all'asta gli slot liberati.
+      </p>
+      <div class="note">
+        I tagli restano annullabili dai partecipanti finché non chiudi la finestra. Gli altri
+        comandi d'asta sono spenti: qui non ci sono turni né lotti.
+      </div>
+    </div>
+  }
+
+  @if (isFixedOrder() && !isFilling() && !isReleasing()) {
+    <div class="divider-soft"></div>
+    <div>
+      <div class="kicker" style="margin-bottom: 8px">Avanzamento reparti</div>
+      @let role = currentRoleLabel();
+      @if (role) {
+        <p class="lead" style="margin: 0 0 8px">
+          Si stanno comprando i <strong style="font-weight: 600">{{ role.toLowerCase() }}</strong
+          >. Chiudendo adesso,
+          <strong style="font-weight: 600">{{ leftoverIfClosed() }}</strong> slot restano vuoti: non
+          tornano all'asta, si riempiranno negli svincoli finali a 1 credito.
+        </p>
+        <button
+          type="button"
+          class="btn btn-secondary"
+          [disabled]="!canAdvance()"
+          (click)="advanceRole()"
+        >
+          Chiudi i {{ role.toLowerCase() }} e passa al reparto successivo
+        </button>
+      } @else {
+        <p class="lead" style="margin: 0 0 8px">
+          Nessun reparto da battere all'asta. Restano {{ openSlots() }} slot da riempire: apri gli
+          svincoli e i partecipanti completano la rosa a 1 credito.
+        </p>
+        <button
+          type="button"
+          class="btn btn-primary"
+          [disabled]="!canAdvance()"
+          (click)="advanceRole()"
+        >
+          Apri gli svincoli
+        </button>
+      }
+      <div class="hint" style="margin-top: 6px">
+        @if (canAdvance()) {
+          Irreversibile: un reparto chiuso non si riapre.
+        } @else {
+          Aspetta la fine del lotto in corso: a rilanci aperti non si cambia reparto.
+        }
+      </div>
+    </div>
+  }
+
+  @if (isFilling()) {
+    <div class="divider-soft"></div>
+    <div>
+      <div class="kicker" style="margin-bottom: 6px">Svincoli in corso</div>
+      <p class="lead" style="margin: 0">
+        I partecipanti stanno completando la rosa a 1 credito, senza asta. Restano
+        {{ openSlots() }} slot: l'asta si chiude da sé quando arrivano a zero.
+      </p>
+    </div>
+  }
+
+  <div class="divider-soft"></div>
+
+  <div>
+    <div class="kicker" style="margin-bottom: 8px">Assegnazione manuale</div>
+    <div class="grid-fields">
+      <div class="field" style="position: relative">
+        <label for="manualPlayer">Calciatore</label>
+        <input
+          id="manualPlayer"
+          class="input"
+          placeholder="Cerca: cognome, squadra…"
+          autocomplete="off"
+          [value]="manualQuery()"
+          (input)="searchManual($any($event.target).value)"
+        />
+        @if (manualResults().length) {
+          <div
+            class="panel-md"
+            style="
+              position: absolute;
+              z-index: 5;
+              left: 0;
+              right: 0;
+              top: 100%;
+              margin-top: 4px;
+              padding: 4px;
+              display: flex;
+              flex-direction: column;
+              gap: 2px;
+            "
+          >
+            @for (player of manualResults(); track player.id) {
+              <button
+                type="button"
+                class="pick pick-row"
+                [disabled]="player.taken"
+                (click)="chooseManual(player)"
+              >
+                <span class="grow ellipsis" style="font-size: 13px">{{ player.name }}</span>
+                <span class="hint">{{ player.team }}</span>
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="field">
+        <label for="manualTeam">Squadra</label>
+        <select
+          id="manualTeam"
+          class="input"
+          [value]="manualParticipantId()"
+          (change)="manualParticipantId.set($any($event.target).value)"
+        >
+          <option value="">Scegli…</option>
+          @for (participant of participants(); track participant.id) {
+            <option [value]="participant.id">{{ participant.teamName }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="manualPrice">Prezzo</label>
+        <input
+          id="manualPrice"
+          class="input num"
+          inputmode="numeric"
+          style="text-align: right"
+          [value]="manualPrice()"
+          (input)="onPrice($any($event.target).value)"
+        />
+      </div>
+    </div>
+    <button
+      type="button"
+      class="btn btn-secondary"
+      style="margin-top: 8px"
+      [disabled]="!canAssign()"
+      (click)="assignManual()"
+    >
+      Assegna
+    </button>
+  </div>
+
+  <div class="divider-soft"></div>
+
+  <div>
+    <div class="kicker" style="margin-bottom: 8px">Riapertura di un lotto</div>
+    <div class="field" style="position: relative">
+      <label for="reopenPlayer">Calciatore già venduto</label>
+      <input
+        id="reopenPlayer"
+        class="input"
+        placeholder="Cerca fra i venduti…"
+        autocomplete="off"
+        [value]="reopenQuery()"
+        (input)="searchReopen($any($event.target).value)"
+      />
+      @if (reopenResults().length) {
+        <div
+          class="panel-md"
+          style="
+            position: absolute;
+            z-index: 5;
+            left: 0;
+            right: 0;
+            top: 100%;
+            margin-top: 4px;
+            padding: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+          "
+        >
+          @for (player of reopenResults(); track player.id) {
+            <button type="button" class="pick pick-row" (click)="chooseReopen(player)">
+              <span class="grow ellipsis" style="font-size: 13px">{{ player.name }}</span>
+              <span class="hint">{{ player.team }}</span>
+            </button>
+          }
+        </div>
+      }
+    </div>
+
+    @let sold = reopenOwner();
+    @if (sold) {
+      <p class="lead" style="margin: 8px 0">
+        <strong style="font-weight: 600">{{ sold.teamName }}</strong> si riprende
+        <strong style="font-weight: 600">{{ sold.price }}</strong> crediti e
+        {{ reopenPlayer()?.name }} torna all'asta da
+        <strong style="font-weight: 600">{{ reopenPrice() }}</strong
+        >: si ribatte da zero.
+      </p>
+    }
+
+    <button
+      type="button"
+      class="btn btn-secondary"
+      style="margin-top: 8px"
+      [disabled]="!reopenPlayer() || !canReopen()"
+      (click)="reopenLot()"
+    >
+      Riapri il lotto
+    </button>
+    <div class="hint" style="margin-top: 6px">
+      @if (!canReopen()) {
+        Aspetta la fine del lotto in corso: non si riapre nulla a rilanci aperti.
+      } @else {
+        La chiamata torna a chi l'aveva fatta. Se la sala è in pausa il timer non riparte da solo:
+        riapri, poi premi Riprendi.
+      }
+    </div>
+  </div>
+
+  <div class="divider-soft"></div>
+
+  <div>
+    <div class="kicker" style="margin-bottom: 8px">Mercato di riparazione</div>
+    <p class="lead" style="margin: 0 0 8px">
+      Riapre l'asta a metà stagione sulle rose esistenti. Apre una
+      <strong style="font-weight: 600">finestra di svincolo</strong>: ogni squadra taglia chi vuole
+      dalla propria rosa e i crediti tornano secondo la regola di lega ({{
+        refundLabel().toLowerCase()
+      }}, si cambia nella tab Regole). Poi «Chiudi gli svincoli e riparti» rimette all'asta gli slot
+      liberati.
+    </p>
+    <p class="lead" style="margin: 0 0 8px">
+      Rose e crediti residui non si toccano, e i reparti chiusi in anticipo si riaprono: l'asta
+      d'agosto non zavorra il mercato di gennaio.
+    </p>
+
+    <div class="row" style="gap: 8px; flex-wrap: wrap; margin-bottom: 8px">
+      <label class="hint" for="extra-budget">Crediti extra a tutti</label>
+      <input
+        id="extra-budget"
+        class="input num"
+        style="width: 90px"
+        inputmode="numeric"
+        [value]="extraBudget()"
+        (input)="onExtraBudget($any($event.target).value)"
+      />
+      <button
+        type="button"
+        class="btn btn-secondary"
+        [disabled]="!canStartRepair()"
+        (click)="startRepair()"
+      >
+        Apri la riparazione {{ repairRound() + 1 }}
+      </button>
+    </div>
+
+    <div class="note">
+      @if (isReleasing()) {
+        C'è già un mercato aperto: chiudi la finestra prima di aprirne un altro.
+      } @else if (!canStartRepair()) {
+        Aspetta la fine del lotto in corso: un mercato non si apre a rilanci aperti.
+      } @else {
+        Lascia 0 per riparare col solo budget residuo. Il numero di movimenti non è limitato: i
+        vincoli restano gli slot di rosa e i crediti.
+      }
+    </div>
+  </div>
+
+  <div class="divider-soft"></div>
+
+  <div>
+    <div class="kicker" style="margin-bottom: 8px">Esporta le rose</div>
+    <p class="lead" style="margin: 0 0 8px">
+      CSV a tre colonne (<span class="mono">squadra,idCalciatore,prezzo</span>) da caricare su
+      Fantacalcio.it. Adesso le rose contengono
+      <strong style="font-weight: 600">{{ boughtCount() }}</strong> calciatori.
+    </p>
+    <button
+      type="button"
+      class="btn btn-secondary"
+      [disabled]="exporting()"
+      (click)="exportRosters()"
+    >
+      {{ exporting() ? 'Preparo il file…' : 'Scarica il CSV per Fantacalcio.it' }}
+    </button>
+
+    @let skipped = exportSkipped();
+    @if (exportError()) {
+      <div class="hint" style="margin-top: 6px; color: var(--color-accent-300)">
+        {{ exportError() }}
+      </div>
+    } @else if (exportedFile()) {
+      <div class="hint" style="margin-top: 6px">
+        Scaricato <span class="mono">{{ exportedFile() }}</span
+        >.
+        @if (skipped.length) {
+          <strong style="font-weight: 600">{{ skippedLabel() }}</strong
+          >: senza id di Fantacalcio.it vanno aggiunti a mano.
+          <ul style="margin: 4px 0 0; padding-left: 18px">
+            @for (player of skipped; track player.name + player.teamName) {
+              <li>{{ player.name }} ({{ player.realTeam }}) — {{ player.teamName }}</li>
+            }
+          </ul>
+        }
+      </div>
+    } @else {
+      <div class="hint" style="margin-top: 6px">
+        Sola lettura: non tocca l'asta, si può rifare a ogni momento.
+      </div>
+    }
+  </div>
+
+  <div class="divider-soft"></div>
+
+  <div style="display: flex; gap: 8px; flex-wrap: wrap">
+    <button type="button" class="btn btn-secondary" (click)="reset()">Azzera asta</button>
+    <button type="button" class="btn btn-primary" (click)="goToAuction()">Torna all'asta</button>
+  </div>
+</div>

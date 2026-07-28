@@ -1,0 +1,70 @@
+@let team = me();
+<div class="wrap-narrow stack">
+  @if (team) {
+    <div class="panel-md" style="padding: 14px">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px">
+        <div>
+          <div class="kicker kicker-accent">La tua squadra</div>
+          <div class="title-md">{{ team.teamName }}</div>
+        </div>
+        <div style="text-align: right">
+          <div class="credits-big">{{ team.budget }}</div>
+          <div class="hint">su {{ budget() }} crediti</div>
+        </div>
+      </div>
+
+      <div class="meter" style="margin-top: 12px">
+        <span [style.width]="spentPct()"></span>
+      </div>
+
+      <div class="grid-4" style="margin-top: 12px">
+        <app-role-counters [participant]="team" [big]="true" />
+      </div>
+
+      <div class="note" style="margin-top: 10px">{{ advice() }}</div>
+    </div>
+
+    <div class="panel-md" style="padding: 6px 12px 12px">
+      @for (entry of team.roster; track entry.playerId) {
+        <div
+          class="row"
+          style="
+            gap: 10px;
+            padding: 10px 2px;
+            border-bottom: 1px solid color-mix(in srgb, var(--color-text) 7%, transparent);
+          "
+        >
+          <app-role-chip [role]="entry.role" />
+          <span class="grow" style="font-weight: 500; font-size: 15px">{{ entry.name }}</span>
+          <span class="hint">{{ entry.team }}</span>
+          <span
+            class="num"
+            style="font-weight: 600; font-size: 15px; color: var(--color-accent-400)"
+          >
+            {{ entry.price }}
+          </span>
+        </div>
+      } @empty {
+        <div
+          style="
+            padding: 22px 4px;
+            font-size: 13px;
+            color: color-mix(in srgb, var(--color-text) 40%, transparent);
+          "
+        >
+          Rosa vuota. Un foglio bianco, pieno di possibilità e di errori futuri.
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="panel-md" style="padding: 22px 16px">
+      <div class="lead">
+        Sei entrato come admin: non hai una rosa. Guarda la Lega o vai in Regia.
+      </div>
+    </div>
+  }
+
+  <button type="button" class="btn btn-secondary" style="align-self: flex-start" (click)="leave()">
+    Esci dall'asta
+  </button>
+</div>

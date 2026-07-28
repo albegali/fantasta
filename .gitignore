@@ -1,0 +1,14 @@
+# deps
+node_modules/
+# build
+dist/
+# env
+.env
+*.local
+# prisma
+backend/prisma/*.db
+# logs / os
+*.log
+.DS_Store
+# uploads temporanei
+backend/uploads/

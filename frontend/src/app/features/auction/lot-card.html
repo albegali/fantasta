@@ -1,0 +1,118 @@
+@let l = lot();
+@if (l) {
+  <div
+    class="panel-hot"
+    [style.--frame]="urgent() ? 'var(--color-accent)' : 'var(--color-neutral-700)'"
+  >
+    <div style="padding: 16px 16px 12px; display: flex; align-items: flex-start; gap: 14px">
+      <div class="grow">
+        <div class="row" style="gap: 7px; margin-bottom: 6px">
+          <app-role-chip [role]="l.player.role" [long]="true" />
+          <span class="note">{{ l.player.team }}</span>
+        </div>
+        <div class="title-lg">{{ l.player.name }}</div>
+        <div class="note" style="margin-top: 5px">
+          Quotazione {{ l.player.quotation }} · chiamato da {{ caller()?.name }}
+        </div>
+      </div>
+
+      <div
+        class="ring"
+        role="timer"
+        aria-live="off"
+        [style.--ring-pct]="ringPct()"
+        [style.--ring-color]="urgent() ? 'var(--color-accent-400)' : 'var(--color-accent-700)'"
+      >
+        <div class="ring-core">
+          <span class="ring-num" [class.is-urgent]="urgent()">{{ timerText() }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider-soft" style="margin: 0 16px"></div>
+
+    <div style="padding: 14px 16px; display: flex; align-items: center; gap: 12px">
+      <div class="grow">
+        <div class="kicker">Offerta più alta</div>
+        <div style="display: flex; align-items: baseline; gap: 8px">
+          <!-- @for su una lista di un elemento: al cambio prezzo il nodo viene
+               ricreato e l'animazione di pulse riparte. -->
+          @for (price of [l.price]; track price) {
+            <span class="bid-amount anim-pulse">{{ price }}</span>
+          }
+          <span class="note">crediti</span>
+        </div>
+      </div>
+
+      @let best = leader();
+      @if (best) {
+        <div
+          class="row"
+          style="gap: 8px; padding: 6px 10px 6px 6px; border-radius: 999px"
+          [style.background]="
+            amIBest()
+              ? 'color-mix(in srgb, var(--color-accent) 20%, transparent)'
+              : 'color-mix(in srgb, var(--color-text) 6%, transparent)'
+          "
+        >
+          <app-avatar [name]="best.name" [color]="best.color" [size]="28" />
+          <span style="font-weight: 500; font-size: 13px">{{ best.name }}</span>
+        </div>
+      }
+    </div>
+
+    <div style="padding: 0 16px 16px; display: flex; flex-direction: column; gap: 8px">
+      <div class="grid-3">
+        @for (bid of quickBids(); track bid.step) {
+          <button
+            type="button"
+            class="btn btn-primary"
+            [disabled]="bid.disabled"
+            (click)="quickBid(bid.step)"
+            style="min-height: 52px; font-size: 19px; font-weight: 600; border-radius: 10px"
+          >
+            {{ bid.label }}
+          </button>
+        }
+      </div>
+
+      <form style="display: flex; gap: 8px" (submit)="$event.preventDefault(); customBid()">
+        <input
+          class="input"
+          inputmode="numeric"
+          aria-label="Rilancio libero"
+          placeholder="Rilancio libero…"
+          [value]="custom()"
+          (input)="onCustom($any($event.target).value)"
+          style="min-height: 44px; font-size: 15px"
+        />
+        <button
+          type="submit"
+          class="btn btn-secondary"
+          [disabled]="customDisabled()"
+          style="min-height: 44px; padding-inline: 16px; white-space: nowrap"
+        >
+          Rilancia
+        </button>
+      </form>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px">
+        <span class="hint">{{ maxLine() }}</span>
+        <button
+          type="button"
+          class="btn btn-secondary"
+          [attr.aria-pressed]="alerts.enabled()"
+          (click)="alerts.toggle()"
+          [style.color]="
+            alerts.enabled()
+              ? 'var(--color-accent-400)'
+              : 'color-mix(in srgb, var(--color-text) 45%, transparent)'
+          "
+          style="padding: 4px 9px; font-size: 11px"
+        >
+          {{ alerts.enabled() ? 'Suono e vibrazione ON' : 'Suono OFF' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

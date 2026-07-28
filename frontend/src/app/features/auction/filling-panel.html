@@ -1,0 +1,64 @@
+<div class="panel elev-md" style="padding: 14px">
+  <div class="kicker-lg">Svincoli</div>
+  <div class="title-md" style="margin: 2px 0 2px">Completa la rosa</div>
+
+  @if (slotsLeft() === 0) {
+    <p class="lead" style="margin: 0">
+      La tua rosa è completa. Aspetta che gli altri chiudano la loro.
+    </p>
+  } @else {
+    <p class="lead" style="margin: 0 0 10px">
+      L'asta è chiusa. Ti restano <strong style="font-weight: 600">{{ slotsLeft() }}</strong> slot
+      da riempire: prendi chi vuoi fra i rimasti a {{ price }} credito. Nessun rilancio, nessun
+      turno — chi clicca prima se lo porta a casa.
+    </p>
+
+    @if (!canAfford()) {
+      <div class="note" style="margin-bottom: 10px; color: var(--color-accent-300)">
+        Non ti resta nemmeno un credito: non puoi più completare la rosa.
+      </div>
+    }
+
+    @for (bucket of buckets(); track bucket.role) {
+      <div style="margin-top: 12px">
+        <div class="row" style="gap: 8px; margin-bottom: 6px">
+          <app-role-chip [role]="bucket.role" />
+          <span class="kicker">{{ bucket.label }}</span>
+          <span class="hint num push">{{ bucket.missing }} da prendere</span>
+        </div>
+
+        @if (bucket.players.length) {
+          <div
+            class="scroll-y"
+            style="display: flex; flex-direction: column; gap: 2px; max-height: 240px"
+          >
+            @for (player of bucket.players; track player.id) {
+              <button
+                type="button"
+                class="pick pick-row"
+                [disabled]="!canAfford()"
+                (click)="claim(player)"
+              >
+                <span class="grow ellipsis" style="font-weight: 500; font-size: 14px">
+                  {{ player.name }}
+                </span>
+                <span class="hint">{{ player.team }}</span>
+                <span class="hint num">q. {{ player.quotation }}</span>
+                <span
+                  class="num"
+                  style="font-weight: 600; font-size: 14px; color: var(--color-accent-400)"
+                >
+                  {{ price }}
+                </span>
+              </button>
+            }
+          </div>
+        } @else if (loading()) {
+          <div class="note">Carico i rimasti…</div>
+        } @else {
+          <div class="note">Non è rimasto nessuno in questo reparto.</div>
+        }
+      </div>
+    }
+  }
+</div>

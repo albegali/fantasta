@@ -1,0 +1,78 @@
+<div class="panel-md" style="padding: 18px; display: flex; flex-direction: column; gap: 12px">
+  <div
+    class="dropzone"
+    [class.is-over]="dragOver()"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave()"
+    (drop)="onDrop($event)"
+  >
+    <div style="font-size: 15px; font-weight: 500">Trascina qui il listone di Fantacalcio.it</div>
+    <div class="note" style="margin-top: 3px">
+      .xlsx · colonne Id, Ruolo, Nome, Squadra, Qt.A, Qt.I
+    </div>
+    <label class="btn btn-primary" style="margin-top: 12px">
+      {{ busy() ? 'Import in corso…' : 'Scegli file' }}
+      <input
+        #picker
+        type="file"
+        accept=".xlsx,.xls"
+        hidden
+        [disabled]="busy()"
+        (change)="onPick(picker)"
+      />
+    </label>
+  </div>
+
+  <div
+    style="
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    "
+  >
+    <div class="lead" style="font-size: 12px">{{ status() }}</div>
+    <div style="display: flex; gap: 5px">
+      @for (stat of stats(); track stat.role) {
+        <span class="role-chip is-long" [class]="'role-' + stat.role"
+          >{{ stat.role }} {{ stat.count }}</span
+        >
+      }
+    </div>
+  </div>
+
+  <div class="scroll-y" style="max-height: 360px">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Ruolo</th>
+          <th>Nome</th>
+          <th>Squadra</th>
+          <th style="text-align: right">Qt.</th>
+          <th>Stato</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (player of players(); track player.id) {
+          <tr>
+            <td><app-role-chip [role]="player.role" [long]="false" /></td>
+            <td style="font-weight: 500">{{ player.name }}</td>
+            <td class="lead">{{ player.team }}</td>
+            <td class="num" style="text-align: right">{{ player.quotation }}</td>
+            <td
+              style="font-size: 12px"
+              [style.color]="
+                player.taken
+                  ? 'color-mix(in srgb, var(--color-text) 35%, transparent)'
+                  : 'var(--color-accent-400)'
+              "
+            >
+              {{ player.taken ? 'Assegnato' : 'Disponibile' }}
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

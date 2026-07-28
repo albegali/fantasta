@@ -1,0 +1,126 @@
+@let r = rules();
+@if (r) {
+  <div class="panel-md" style="padding: 16px; display: flex; flex-direction: column; gap: 16px">
+    <div>
+      <div class="kicker" style="margin-bottom: 8px">Slot per reparto</div>
+      <div
+        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px"
+      >
+        @for (field of slotFields(); track field.role) {
+          <div class="field">
+            <label [attr.for]="'slot-' + field.role">{{ field.label }}</label>
+            <input
+              [id]="'slot-' + field.role"
+              class="input num"
+              inputmode="numeric"
+              style="text-align: center"
+              [value]="field.value"
+              (change)="setSlot(field.role, $any($event.target).value)"
+            />
+          </div>
+        }
+      </div>
+      <div class="hint" style="margin-top: 6px">{{ slotsTotal() }}</div>
+    </div>
+
+    <div
+      style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px"
+    >
+      <div class="field">
+        <label for="budgetRule">Budget iniziale (crediti)</label>
+        <input
+          id="budgetRule"
+          class="input num"
+          inputmode="numeric"
+          [value]="r.budget"
+          (change)="setBudget($any($event.target).value)"
+        />
+      </div>
+      <div class="field">
+        <label for="timerRule">Tempo per il rilancio (secondi)</label>
+        <input
+          id="timerRule"
+          class="input num"
+          inputmode="numeric"
+          [value]="r.bidTimerSeconds"
+          (change)="setTimer($any($event.target).value)"
+        />
+      </div>
+    </div>
+
+    <div>
+      <div class="kicker" style="margin-bottom: 8px">Base d'asta</div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center">
+        <button
+          type="button"
+          class="choice"
+          [class.is-on]="r.startPriceMode === 'fixed'"
+          (click)="setStartPriceMode('fixed')"
+        >
+          Base fissa
+        </button>
+        <button
+          type="button"
+          class="choice"
+          [class.is-on]="r.startPriceMode === 'quotation'"
+          (click)="setStartPriceMode('quotation')"
+        >
+          Quotazione del calciatore
+        </button>
+        @if (r.startPriceMode === 'fixed') {
+          <input
+            class="input num"
+            inputmode="numeric"
+            aria-label="Prezzo base"
+            style="width: 84px; text-align: center"
+            [value]="r.startPrice"
+            (change)="setStartPrice($any($event.target).value)"
+          />
+        }
+      </div>
+      <div class="hint" style="margin-top: 6px">{{ baseHint() }}</div>
+    </div>
+
+    <div>
+      <div class="kicker" style="margin-bottom: 8px">Ordine delle chiamate</div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap">
+        <button
+          type="button"
+          class="choice"
+          [class.is-on]="r.callOrder === 'free'"
+          (click)="setCallOrder('free')"
+        >
+          Libero
+        </button>
+        <button
+          type="button"
+          class="choice"
+          [class.is-on]="r.callOrder === 'fixed'"
+          (click)="setCallOrder('fixed')"
+        >
+          Per reparto: P → D → C → A
+        </button>
+      </div>
+      <div class="hint" style="margin-top: 6px">{{ orderHint() }}</div>
+    </div>
+
+    <div>
+      <div class="kicker" style="margin-bottom: 8px">
+        Svincoli di riparazione · quanto torna a chi taglia
+      </div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap">
+        @for (choice of refundModes; track choice.mode) {
+          <button
+            type="button"
+            class="choice"
+            [class.is-on]="r.releaseRefund === choice.mode"
+            (click)="setReleaseRefund(choice.mode)"
+          >
+            {{ choice.label }}
+          </button>
+        }
+      </div>
+      <div class="hint" style="margin-top: 6px">{{ refundHint() }}</div>
+    </div>
+  </div>
+}

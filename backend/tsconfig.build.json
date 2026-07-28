@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "//": "Il build di produzione contiene solo src/: fuori i test e il seed (che gira con ts-node), altrimenti l'output finisce in dist/src/.",
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "test", "prisma", "**/*.spec.ts"]
+}

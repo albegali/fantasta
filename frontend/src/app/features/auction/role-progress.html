@@ -1,0 +1,61 @@
+@if (visible()) {
+  @let step = currentStep();
+  <div class="panel-md" style="padding: 10px 12px">
+    <div class="row" style="gap: 8px; flex-wrap: wrap">
+      @if (isFilling()) {
+        <span class="kicker kicker-accent">Svincoli</span>
+        <span style="font-size: 14px; font-weight: 500">Asta chiusa</span>
+      } @else {
+        <span class="kicker kicker-accent">Reparto in corso</span>
+        @if (step) {
+          <span style="font-size: 14px; font-weight: 500">{{ step.label }}</span>
+          <span class="hint num push">{{ step.filled }}/{{ step.total }} slot</span>
+        } @else {
+          <span class="hint">Tutti i reparti completi</span>
+        }
+      }
+    </div>
+
+    @if (step && !isFilling()) {
+      <div class="meter" style="margin-top: 8px">
+        <span [style.width]="pct()"></span>
+      </div>
+    }
+
+    <div class="row" style="gap: 4px; margin-top: 8px">
+      @for (s of steps(); track s.role) {
+        <span
+          class="counter"
+          [class.is-full]="s.current"
+          [style.opacity]="s.done || s.closed ? 0.4 : 1"
+          [style.text-decoration]="s.closed ? 'line-through' : null"
+          [attr.aria-current]="s.current ? 'step' : null"
+          [attr.title]="
+            s.label +
+            ' · ' +
+            s.filled +
+            '/' +
+            s.total +
+            (s.closed ? ' · chiuso dall’admin, slot rimasti agli svincoli' : '')
+          "
+        >
+          {{ s.role }}
+        </span>
+      }
+    </div>
+
+    @if (leftoverSlots() > 0 && !isFilling()) {
+      <div class="hint" style="margin-top: 8px">
+        {{ leftoverSlots() }} slot lasciati indietro da reparti chiusi in anticipo: si riempiranno
+        negli svincoli finali.
+      </div>
+    }
+
+    @if (amISkipped() && !isFilling()) {
+      <div class="note" style="margin-top: 8px">
+        Hai completato questo reparto: i tuoi turni vengono saltati finché la lega non passa al
+        successivo.
+      </div>
+    }
+  </div>
+}

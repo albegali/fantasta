@@ -1,0 +1,101 @@
+<div class="wrap-narrow stack">
+  <div class="panel-md" style="padding: 13px; display: flex; flex-direction: column; gap: 11px">
+    <div class="row" style="gap: 10px">
+      <span class="grow">
+        <span class="kicker kicker-accent">Telecronaca</span>
+        <span class="title-md ellipsis" style="display: block">{{ auctionName() }}</span>
+      </span>
+      @if (loading()) {
+        <span class="live-dot"></span>
+      }
+      <span class="tag tag-outline num">{{ lines().length }}</span>
+    </div>
+
+    <div class="row" style="flex-wrap: wrap; gap: 6px">
+      @for (tab of filters; track tab.id) {
+        <button
+          type="button"
+          class="choice"
+          [class.is-on]="filter() === tab.id"
+          (click)="setFilter(tab.id)"
+        >
+          {{ tab.label }}
+        </button>
+      }
+    </div>
+
+    <select
+      class="input"
+      [value]="team()"
+      (change)="setTeam($any($event.target).value)"
+      aria-label="Filtra per squadra"
+    >
+      <option value="">Tutte le squadre</option>
+      @for (participant of participants(); track participant.id) {
+        <option [value]="participant.id">{{ participant.teamName }}</option>
+      }
+    </select>
+
+    @if (failed()) {
+      <div class="note" style="color: var(--color-accent-300)">
+        Cronaca non raggiungibile. Quel che vedi arriva dalla sala.
+      </div>
+    }
+  </div>
+
+  <div class="panel-md" style="padding: 10px 12px 12px">
+    <div style="display: flex; flex-direction: column; gap: 5px">
+      @for (line of lines(); track line.seq) {
+        <div
+          class="feed-row"
+          [class.is-mine]="!!line.participantId && line.participantId === myId()"
+          [style.opacity]="line.kind === 'phase' ? 0.7 : 1"
+        >
+          <span class="hint num" style="flex: none; width: 34px">{{ line.time }}</span>
+
+          @if (line.role) {
+            <app-role-chip [role]="line.role" />
+          }
+
+          <span class="grow" style="min-width: 0">
+            <span style="display: block; font-size: 13px">{{ line.text }}</span>
+            @if (line.note) {
+              <span class="hint" style="display: block">{{ line.note }}</span>
+            }
+          </span>
+
+          @if (line.amount !== null) {
+            <span class="feed-amount" [class.is-nominate]="line.kind !== 'purchase'">
+              {{ line.amount }}
+            </span>
+          }
+        </div>
+      } @empty {
+        <div
+          style="
+            padding: 22px 4px;
+            font-size: 13px;
+            color: color-mix(in srgb, var(--color-text) 40%, transparent);
+          "
+        >
+          @if (loading()) {
+            Sto recuperando la cronaca…
+          } @else {
+            Niente da raccontare, per ora.
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  @if (canLoadMore()) {
+    <button
+      type="button"
+      class="btn btn-secondary"
+      style="align-self: flex-start"
+      (click)="loadMore()"
+    >
+      Carica le righe più vecchie
+    </button>
+  }
+</div>

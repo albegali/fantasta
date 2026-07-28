@@ -1,0 +1,79 @@
+<div class="wrap-login">
+  <div class="kicker-lg">{{ rules()?.leagueName }}</div>
+  <h1 class="title-xl" style="margin: 2px 0 4px">{{ rules()?.auctionName }}</h1>
+
+  @if (asAdmin()) {
+    <p class="lead" style="margin: 0 0 18px">
+      Entri come admin: setup lega, listone, regole e regia. Serve il token condiviso.
+    </p>
+  } @else {
+    <p class="lead" style="margin: 0 0 18px">
+      Hai un link dall'admin? Aprilo e sei dentro. Altrimenti scegli la tua squadra e inserisci il
+      codice. Sì, quello che l'admin non voleva darti.
+    </p>
+
+    <div class="grid-auto">
+      @for (team of teams(); track team.id) {
+        <button
+          type="button"
+          class="pick"
+          [class.is-on]="pickId() === team.id"
+          (click)="pick(team.id)"
+        >
+          <app-avatar [name]="team.name" [color]="team.color" [size]="30" />
+          <span style="min-width: 0">
+            <span class="ellipsis" style="display: block; font-weight: 500; font-size: 13px">
+              {{ team.teamName }}
+            </span>
+            <span class="hint" style="display: block">{{ team.name }}</span>
+          </span>
+        </button>
+      }
+    </div>
+  }
+
+  <form
+    style="margin-top: 16px; display: flex; gap: 8px"
+    (submit)="$event.preventDefault(); join()"
+  >
+    <label class="grow">
+      <span class="sr-only" style="position: absolute; left: -9999px">
+        {{ asAdmin() ? 'Token admin' : 'Codice squadra' }}
+      </span>
+      <input
+        class="input"
+        [placeholder]="asAdmin() ? 'TOKEN ADMIN' : 'CODICE'"
+        [value]="code()"
+        (input)="onCode($any($event.target).value)"
+        autocapitalize="characters"
+        autocomplete="off"
+        spellcheck="false"
+        style="
+          min-height: 46px;
+          font-size: 18px;
+          letter-spacing: 0.22em;
+          text-align: center;
+          font-weight: 600;
+        "
+      />
+    </label>
+    <button
+      type="submit"
+      class="btn btn-primary"
+      [disabled]="busy()"
+      style="min-height: 46px; padding-inline: 20px; white-space: nowrap"
+    >
+      Entra
+    </button>
+  </form>
+
+  @if (loginError()) {
+    <div style="margin-top: 8px; font-size: 12px; color: var(--color-accent-300)">
+      {{ loginError() }}
+    </div>
+  }
+
+  <button type="button" class="btn btn-ghost" style="margin-top: 14px" (click)="toggleAdmin()">
+    {{ asAdmin() ? '← Entra come partecipante' : 'Entra come admin' }}
+  </button>
+</div>

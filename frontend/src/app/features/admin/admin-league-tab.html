@@ -1,0 +1,196 @@
+<div class="panel-md" style="padding: 16px; display: flex; flex-direction: column; gap: 16px">
+  <div class="grid-fields">
+    <div class="field">
+      <label for="leagueName">Nome della lega</label>
+      <input
+        id="leagueName"
+        class="input"
+        [value]="rules()?.leagueName ?? ''"
+        (change)="setLeagueName($any($event.target).value)"
+      />
+    </div>
+    <div class="field">
+      <label for="auctionName">Nome dell'asta</label>
+      <input
+        id="auctionName"
+        class="input"
+        [value]="rules()?.auctionName ?? ''"
+        (change)="setAuctionName($any($event.target).value)"
+      />
+    </div>
+  </div>
+
+  <div>
+    <div
+      style="
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+      "
+    >
+      <div class="kicker">Partecipanti · ordine di chiamata e accessi</div>
+      <div style="display: flex; gap: 6px">
+        <button type="button" class="btn btn-secondary" (click)="toggleCodes()">
+          {{ showCodes() ? 'Nascondi codici' : 'Mostra codici' }}
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="shuffle()">
+          Sorteggia ordine
+        </button>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      @for (row of rows(); track row.participant.id; let i = $index) {
+        <div
+          style="
+            padding: 10px;
+            border-radius: 10px;
+            background: color-mix(in srgb, var(--color-text) 3%, transparent);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+          "
+        >
+          <div class="row" style="flex-wrap: wrap">
+            <span
+              class="num"
+              style="
+                width: 20px;
+                text-align: center;
+                font-weight: 600;
+                font-size: 13px;
+                color: color-mix(in srgb, var(--color-text) 40%, transparent);
+              "
+            >
+              {{ row.pos }}
+            </span>
+            <app-avatar [name]="row.name" [color]="row.participant.color" [size]="32" />
+            <span
+              class="mono"
+              style="font-weight: 600; font-size: 14px; color: var(--color-accent-400)"
+            >
+              {{ row.code }}
+            </span>
+            <span class="push" style="display: flex; gap: 4px">
+              <button
+                type="button"
+                class="btn btn-secondary btn-icon"
+                title="Su"
+                aria-label="Sposta su"
+                (click)="move(i, -1)"
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                class="btn btn-secondary btn-icon"
+                title="Giù"
+                aria-label="Sposta giù"
+                (click)="move(i, 1)"
+              >
+                ↓
+              </button>
+              <button
+                type="button"
+                class="btn btn-secondary btn-icon"
+                title="Rimuovi"
+                aria-label="Rimuovi"
+                (click)="remove(row.participant.id)"
+              >
+                ×
+              </button>
+            </span>
+          </div>
+
+          <div class="row" style="flex-wrap: wrap; gap: 6px">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              style="font-size: 12px"
+              [disabled]="!row.link"
+              (click)="copyLink(row)"
+            >
+              {{ copiedId() === row.participant.id ? 'Link copiato ✓' : 'Copia link' }}
+            </button>
+            <button
+              type="button"
+              class="btn btn-ghost"
+              style="font-size: 12px"
+              (click)="regenerateLink(row.participant.id)"
+            >
+              Rigenera link
+            </button>
+            <button
+              type="button"
+              class="btn btn-ghost"
+              style="font-size: 12px"
+              (click)="regenerate(row.participant.id)"
+            >
+              Rigenera codice
+            </button>
+          </div>
+
+          @if (revealed(); as fallback) {
+            @if (fallback.id === row.participant.id) {
+              <input
+                class="input mono"
+                style="font-size: 12px"
+                readonly
+                [value]="fallback.url"
+                aria-label="Magic link da copiare a mano"
+                (focus)="$any($event.target).select()"
+              />
+            }
+          }
+
+          <div class="grid-auto">
+            <div class="field">
+              <label [attr.for]="'team-' + row.participant.id">Squadra</label>
+              <input
+                [id]="'team-' + row.participant.id"
+                class="input"
+                placeholder="Nome squadra"
+                [value]="row.teamName"
+                (input)="draft(row.participant.id, 'teamName', $any($event.target).value)"
+              />
+            </div>
+            <div class="field">
+              <label [attr.for]="'name-' + row.participant.id">Partecipante</label>
+              <input
+                [id]="'name-' + row.participant.id"
+                class="input"
+                placeholder="Nome"
+                [value]="row.name"
+                (input)="draft(row.participant.id, 'name', $any($event.target).value)"
+              />
+            </div>
+            <div class="field">
+              <label [attr.for]="'credits-' + row.participant.id">Crediti</label>
+              <input
+                [id]="'credits-' + row.participant.id"
+                class="input num"
+                inputmode="numeric"
+                style="text-align: right"
+                [value]="row.credits"
+                (input)="draft(row.participant.id, 'budget', $any($event.target).value)"
+              />
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <button type="button" class="btn btn-primary btn-block" (click)="add()">
+      + Aggiungi partecipante
+    </button>
+
+    <div class="hint" style="margin-top: 8px">
+      Manda a ciascuno il suo link: chi lo apre entra già come la sua squadra e ci resta anche
+      dopo un ricaricamento. Il codice a 6 caratteri è il piano B, si detta a voce. Rigenerare
+      link o codice spegne il vecchio e fa uscire chi era dentro con quella sessione.
+    </div>
+  </div>
+</div>

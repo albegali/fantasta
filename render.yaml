@@ -1,0 +1,40 @@
+# Blueprint Render — backend NestJS + Socket.IO (free tier).
+# Vedi INFRA.md per il perché di ogni scelta. Il frontend NON sta qui: va su
+# Cloudflare Pages (banda illimitata sul free), il database su Neon.
+#
+# Uso: Render → New → Blueprint → punta a questo repo. I segreti sono
+# `sync: false`, quindi Render li chiede al primo deploy e non finiscono nel repo.
+
+services:
+  - type: web
+    name: fantasta-auction-api
+    runtime: node
+    plan: free # 512 MB / 0.1 CPU, istanza singola: è quel che serve (stato in memoria)
+    region: frankfurt # il più vicino ai giocatori: meno latenza sui rilanci
+    rootDir: backend
+    buildCommand: npm ci && npx prisma generate && npm run build
+    # `migrate deploy` gira allo start e non in build: al build non è garantito
+    # l'accesso al DB, e a ogni cold-start è un no-op da pochi ms se non c'è
+    # niente da migrare.
+    startCommand: npx prisma migrate deploy && node dist/main.js
+    healthCheckPath: /health # è anche l'endpoint del cron keep-warm
+    autoDeployTrigger: commit
+    envVars:
+      # Stringa di connessione Neon **diretta** (non il pooler): siamo un processo
+      # unico e long-lived, il pooler serve al caso opposto (tante lambda effimere).
+      # Col pooler servirebbe `directUrl` nello schema per `migrate deploy`.
+      - key: DATABASE_URL
+        sync: false
+      # Origin del frontend: uno o più, separati da virgola (vedi src/config/cors.ts).
+      - key: FRONTEND_ORIGIN
+        sync: false
+      # Token admin: header `x-admin-token` sulle REST **e** token di `auth` sul
+      # socket. Lo genera Render, si legge dal dashboard.
+      - key: ADMIN_TOKEN
+        generateValue: true
+      # Firma le sessioni JWT dei partecipanti. Cambiarla scollega tutti i
+      # telefoni (i magic link restano validi). Senza, il backend non parte.
+      - key: JWT_SECRET
+        generateValue: true
+      - key: NODE_ENV
+        value: production

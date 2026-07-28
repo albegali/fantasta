@@ -1,0 +1,8 @@
+{
+  "/health": { "target": "http://localhost:3000", "secure": false, "changeOrigin": true },
+  "/rules": { "target": "http://localhost:3000", "secure": false, "changeOrigin": true },
+  "/players": { "target": "http://localhost:3000", "secure": false, "changeOrigin": true },
+  "/participants": { "target": "http://localhost:3000", "secure": false, "changeOrigin": true },
+  "/log": { "target": "http://localhost:3000", "secure": false, "changeOrigin": true },
+  "/auction": { "target": "http://localhost:3000", "secure": false, "changeOrigin": true, "ws": true }
+}

@@ -1,0 +1,66 @@
+<div class="wrap grid-auction">
+  <div class="stack">
+    @if (showTurnBanner()) {
+      <app-turn-banner />
+    }
+    <app-role-progress />
+
+    @if (idleMine()) {
+      <app-nominate-search />
+    }
+
+    @if (idleTheirs()) {
+      <div class="panel-md" style="padding: 26px 16px; text-align: center">
+        <div class="dots" style="justify-content: center; margin-bottom: 12px">
+          <span></span><span></span><span></span>
+        </div>
+        <div style="font-size: 17px; font-weight: 500">{{ thinkingLine() }}</div>
+        <div class="note" style="margin-top: 4px">
+          @if (amISkipped()) {
+            Il tuo reparto è al completo: rientri in gioco al prossimo.
+          } @else {
+            Sta sfogliando il listone come se non l'avesse già deciso ieri sera.
+          }
+        </div>
+      </div>
+    }
+
+    @if (isRunning()) {
+      <app-lot-card />
+    }
+
+    @if (isReleasing()) {
+      <app-release-panel />
+    }
+
+    @if (isFilling()) {
+      <app-filling-panel />
+    }
+
+    @let sold = lastAssigned();
+    @if (isSold() && sold) {
+      <div class="panel-won anim-rise" style="padding: 26px 16px">
+        <div class="kicker-lg" style="color: var(--color-accent-400)">Aggiudicato</div>
+        <div class="title-lg" style="margin: 6px 0 2px">{{ sold.playerName }}</div>
+        <div style="font-size: 15px; color: color-mix(in srgb, var(--color-text) 75%, transparent)">
+          a <strong style="font-weight: 600">{{ sold.teamName }}</strong> per
+          {{ sold.price }} crediti
+        </div>
+        <div class="note" style="margin-top: 8px">{{ quip() }}</div>
+      </div>
+    }
+
+    @if (isFinished()) {
+      <div class="panel-won" style="padding: 30px 16px">
+        <div class="kicker-lg" style="color: var(--color-accent-400)">Asta conclusa</div>
+        <div class="title-lg" style="font-size: 28px; margin: 6px 0 2px">Rose complete</div>
+        <div class="lead">Ora inizia la parte difficile: schierare la formazione.</div>
+      </div>
+    }
+  </div>
+
+  <div class="stack">
+    <app-bid-feed />
+    <app-presence-list />
+  </div>
+</div>

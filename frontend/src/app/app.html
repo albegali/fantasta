@@ -1,0 +1,52 @@
+<div class="shell">
+  @if (!store.ready()) {
+    <div class="wrap-login row lead" style="padding-top: 60px">
+      <span class="live-dot"></span>
+      Connessione alla sala d'asta…
+    </div>
+  } @else {
+    @if (session.joined()) {
+      <header class="topbar">
+        <div class="wrap" style="padding-bottom: 0; display: flex; align-items: center; gap: 12px">
+          <div style="display: flex; flex-direction: column; line-height: 1.05; margin-right: auto">
+            <span style="font-size: 17px; font-weight: 600; letter-spacing: 0.14em">
+              {{ rules()?.auctionName }}
+            </span>
+            <span class="kicker">{{ rules()?.leagueName }}</span>
+          </div>
+          @if (myCredits() !== null) {
+            <div class="pill">
+              <span class="kicker">Crediti</span>
+              <span
+                class="num"
+                style="font-size: 16px; font-weight: 600; color: var(--color-accent-400)"
+              >
+                {{ myCredits() }}
+              </span>
+            </div>
+          } @else {
+            <span class="tag tag-outline">Admin</span>
+          }
+        </div>
+        <nav class="wrap tabs" style="padding: 8px">
+          @for (item of navItems(); track item.path) {
+            <a
+              class="tab"
+              [routerLink]="item.path"
+              routerLinkActive="is-on"
+              [routerLinkActiveOptions]="{ exact: true }"
+              style="text-align: center; text-decoration: none"
+              >{{ item.label }}</a
+            >
+          }
+        </nav>
+      </header>
+    }
+
+    <router-outlet />
+  }
+
+  @if (error()) {
+    <div class="toast" role="status" aria-live="polite">{{ error() }}</div>
+  }
+</div>

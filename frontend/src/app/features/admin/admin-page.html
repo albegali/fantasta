@@ -1,0 +1,31 @@
+<div class="wrap-form stack">
+  <div class="panel-md tabs" style="padding: 3px; border-radius: 10px">
+    @for (def of tabs; track def.key) {
+      <button
+        type="button"
+        class="tab"
+        style="min-width: 82px"
+        [class.is-on]="tab() === def.key"
+        [attr.aria-pressed]="tab() === def.key"
+        (click)="tab.set(def.key)"
+      >
+        {{ def.label }}
+      </button>
+    }
+  </div>
+
+  @switch (tab()) {
+    @case ('lega') {
+      <app-admin-league-tab />
+    }
+    @case ('listone') {
+      <app-admin-players-tab />
+    }
+    @case ('rules') {
+      <app-admin-rules-tab />
+    }
+    @case ('regia') {
+      <app-admin-control-tab />
+    }
+  }
+</div>
