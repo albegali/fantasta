@@ -13,7 +13,7 @@
 |---|---|---|
 | Database | **Neon** | Postgres gestito, si spegne da solo quando non lo usi |
 | Backend | **Render** | NestJS + Socket.IO, `https://<nome>.onrender.com` |
-| Frontend | **Cloudflare Pages** | l'app Angular, `https://<nome>.pages.dev` |
+| Frontend | **Cloudflare Workers** (static assets) | l'app Angular, `https://<nome>.<subdomain>.workers.dev` |
 | Sveglia | **cron-job.org** | ping su `/health` per non farlo addormentare in serata |
 
 Tieni aperto un file di note: durante la procedura raccogli **5 valori** che serviranno
@@ -112,38 +112,44 @@ curl -s https://<TUO-BACKEND>.onrender.com/health
 
 ---
 
-## Passo 3 — Frontend su Cloudflare Pages (~10 min)
+## Passo 3 — Frontend su Cloudflare Workers (~10 min)
+
+> Cloudflare ha unificato **Pages dentro Workers**: la schermata di setup dice
+> *"Configure your Worker project"* e il deploy avviene con `npx wrangler deploy`.
+> Non è il vecchio flusso Pages e la configurazione **non** sta nel dashboard: sta in
+> `frontend/wrangler.jsonc`, che è già nel repo. Assicurati di averlo pushato prima di
+> premere Deploy, altrimenti `wrangler` non trova niente da pubblicare.
 
 1. **[dash.cloudflare.com](https://dash.cloudflare.com)** → *Sign up* (email +
-   password; nessuna carta per Pages).
-2. Menu laterale **Workers & Pages** → **Create application** → tab **Pages** →
-   **Connect to Git**.
-3. Autorizza GitHub (**Install & Authorize**) e scegli il repo `fantasta`.
-4. **Begin setup** e compila *Set up builds and deployments* — questi valori sono
-   verificati sulla build reale, non indovinati:
+   password, nessuna carta).
+2. Menu laterale **Workers & Pages** → **Create** → **Import a repository** →
+   autorizza GitHub (**Install & Authorize**) e scegli `albegali/fantasta`.
+3. In *Set up your application* compila così — valori verificati sulla build reale e
+   con `wrangler deploy --dry-run`, non indovinati:
 
    | Campo | Valore |
    |---|---|
-   | Project name | `fantasta-auction` (diventa `fantasta-auction.pages.dev`) |
-   | Production branch | `main` |
-   | Framework preset | **None** (l'Angular preset indovina l'output sbagliato) |
-   | Build command | `npm ci && npm run build` |
-   | Build output directory | `dist/frontend/browser` |
-   | Root directory *(Advanced)* | `frontend` |
+   | Project name | `fantasta-auction` |
+   | Build command | `npm ci --include=dev && npm run build` |
+   | Deploy command | `npx wrangler deploy` (già giusto di default) |
+   | Builds for non-production branches | **togli la spunta** (lavori solo su `main`: build minuti risparmiati) |
+   | **Advanced settings** → Root directory | `frontend` |
+   | **Advanced settings** → Environment variables | `NODE_VERSION` = `22` |
 
-5. In **Environment variables** aggiungi:
+   > `--include=dev` per la stessa ragione che ha fatto fallire il primo deploy del
+   > backend: se il builder imposta `NODE_ENV=production`, `npm ci` salta le
+   > devDependencies — e `@angular/build` e la CLI Angular stanno lì.
 
-   | Nome | Valore |
-   |---|---|
-   | `NODE_VERSION` | `22` |
+4. **Deploy**. ~2-3 minuti. L'URL finale è del tipo
+   `https://fantasta-auction.<tuo-subdomain>.workers.dev` (Workers, non `pages.dev`):
+   se Cloudflare ti chiede di scegliere il **subdomain workers.dev** dell'account,
+   fallo ora e non cambiarlo più — ci finisce dentro ogni magic link.
+5. Apri l'URL: l'app mostra la schermata d'accesso. Il login **non funzionerà ancora**
+   — normale, il backend non conosce ancora questo dominio. **Copia l'URL nelle note.**
 
-   > Nel repo c'è già `frontend/.node-version`, ma la variabile è la cintura di
-   > sicurezza: se Pages la cerca nella root del repo invece che in `frontend/`,
-   > costruirebbe con una Node di default.
-
-6. **Save and Deploy**. ~2-3 minuti. A fine build clicca l'URL `*.pages.dev`: l'app
-   si apre sulla schermata d'accesso. Il pulsante non funzionerà ancora — normale,
-   il backend non conosce ancora questo dominio. **Copia l'URL nelle note.**
+> Il fallback SPA qui non viene da `_redirects` (quello vale su Pages e Netlify) ma da
+> `"not_found_handling": "single-page-application"` in `wrangler.jsonc`. È ciò che fa
+> funzionare un magic link aperto da zero invece di dare 404.
 
 ---
 
@@ -156,7 +162,7 @@ frontend deve *sapere* dov'è il backend.
 `FRONTEND_ORIGIN`:
 
 ```
-https://fantasta-auction.pages.dev,http://localhost:4200
+https://fantasta-auction.<subdomain>.workers.dev,http://localhost:4200
 ```
 
 Virgole senza spazi, nessuno slash finale (lo tollera comunque). Il `localhost` in
@@ -166,7 +172,7 @@ lista serve a te: ti permette di debuggare in locale contro il backend vero.
 **4b. Sul frontend (nel repo)** → `frontend/src/environments/environment.prod.ts`:
 metti l'URL **vero** del backend in `apiUrl` e `socketUrl` (se il nome del servizio
 Render è quello previsto, il file è già corretto così com'è), poi commit e push.
-Pages ribuilda da sé.
+Cloudflare ribuilda da sé.
 
 **Verifica che il cerchio sia chiuso** (sostituisci i due domini):
 
@@ -229,7 +235,7 @@ Fallo **qualche giorno prima**, non la sera stessa.
 
 > Il magic link contiene il dominio: se un domani cambi il dominio del frontend, i
 > link salvati in chat **non funzionano più** e vanno rigenerati per tutti. Scegli il
-> nome del progetto Pages una volta e non toccarlo (`INFRA.md` §4).
+> nome del progetto (e il subdomain workers.dev) una volta e non toccarlo (`INFRA.md` §4).
 
 ---
 
@@ -252,9 +258,9 @@ mandalo a te stesso, non nel gruppo dell'asta.
 | Sintomo | Causa quasi certa | Cosa fare |
 |---|---|---|
 | La prima apertura gira a vuoto ~1 min | spin-down del piano free | aspetta, o accendi il cron 2 ore prima |
-| Frontend su, ma il login non risponde | `FRONTEND_ORIGIN` non contiene il dominio Pages | Passo 4a, e ricontrolla la virgola |
+| Frontend su, ma il login non risponde | `FRONTEND_ORIGIN` non contiene il dominio del frontend | Passo 4a, e ricontrolla la virgola |
 | Console del browser: *blocked by CORS policy* | idem | idem |
-| Il magic link aperto da zero dà **404** | manca il fallback SPA | `frontend/public/_redirects` deve essere nel repo e la build output dir deve essere `dist/frontend/browser` |
+| Il magic link aperto da zero dà **404** | manca il fallback SPA | su Workers serve `"not_found_handling": "single-page-application"` in `frontend/wrangler.jsonc`; su Pages/Netlify serve `frontend/public/_redirects` |
 | L'app carica ma il countdown non parte | il socket non si connette | verifica il test 2 del Passo 4; `socketUrl` in `environment.prod.ts` deve essere **https**, non http |
 | Build Render: `sh: 1: nest: not found` | `NODE_ENV=production` fa omettere a npm le devDependencies, dove sta `@nestjs/cli` | il `buildCommand` in `render.yaml` deve avere **`npm ci --include=dev`** |
 | Deploy Render fallito su `prisma migrate deploy` | `DATABASE_URL` col pooler o senza SSL | usa la stringa **diretta** + `?sslmode=require` (Passo 1) |

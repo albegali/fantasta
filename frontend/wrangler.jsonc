@@ -1,0 +1,21 @@
+// Deploy del frontend su Cloudflare Workers (static assets).
+// Cloudflare ha unificato Pages dentro Workers: il flusso nuovo pubblica con
+// `npx wrangler deploy`, che pretende questo file. Le richieste ai file statici
+// sono gratuite e illimitate sul piano free — vedi INFRA.md §2.
+//
+// È un Worker **senza codice**: nessun `main`, solo asset. Tutta la logica sta nel
+// backend NestJS, il frontend è HTML/JS/CSS compilato da `ng build`.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "fantasta-auction",
+  "compatibility_date": "2026-07-29",
+  "assets": {
+    // Output verificato di `npm run build` (angular.json non fissa `outputPath`:
+    // il default di @angular/build:application è `dist/<progetto>/browser`).
+    "directory": "./dist/frontend/browser",
+    // Il router Angular gestisce /j/<magicToken>, /storia, /rosa, /admin: senza
+    // questo, aprire un magic link da zero prenderebbe un 404 di Cloudflare
+    // invece di arrivare al router. È l'equivalente di `_redirects` su Pages.
+    "not_found_handling": "single-page-application"
+  }
+}

@@ -27,7 +27,7 @@ lo stato in memoria è una roulette. Fuori per lo stesso motivo.
 | Piattaforma | Stato | Ruolo |
 |---|---|---|
 | **Render** free web service | 750 h/mese per workspace, 512 MB / 0.1 CPU, **istanza singola**, spin-down 15', cold start ~1 min, nessuna carta | ✅ **backend** |
-| **Cloudflare Pages** | banda **illimitata**, 500 build/mese, uso commerciale permesso | ✅ **frontend** |
+| **Cloudflare Workers** (static assets) | richieste agli asset statici **gratuite e illimitate**, 20.000 asset per versione, uso commerciale permesso | ✅ **frontend** |
 | **Neon** free | 0.5 GB per progetto, 100 CU-h/mese, scale-to-zero a 5', wake < 500 ms | ✅ **database** |
 | Vercel Hobby | 100 GB/mese, **solo uso non commerciale**, 1 sviluppatore | alternativa frontend |
 | Netlify free | 100 GB, 300 build-min | alternativa frontend |
@@ -43,7 +43,7 @@ lo stato in memoria è una roulette. Fuori per lo stesso motivo.
 ```
 ┌─────────────────────────────┐
 │ Angular 22 (statico)        │
-│ Cloudflare Pages            │
+│ Cloudflare Workers (assets) │
 └──────────┬──────────────────┘
            │ HTTPS (REST) + WSS (Socket.IO)
 ┌──────────▼──────────────────┐        ┌──────────────────────┐
@@ -139,17 +139,20 @@ Prerequisito: il repo su **GitHub** (Render e Cloudflare Pages deployano da lì)
    Le migrazioni girano allo start (`prisma migrate deploy`). **Niente seed in
    produzione**: la lega nasce al primo avvio (`ensureLeague`), le squadre le crea
    l'admin dalla tab Lega, il listone si carica con `POST /players/import`.
-3. **Frontend — Cloudflare Pages.** New → Pages → connetti il repo:
-   - root directory: `frontend`
-   - build command: `npm ci && npm run build`
-   - output directory: `dist/frontend/browser`
+3. **Frontend — Cloudflare Workers (static assets).** Cloudflare ha unificato Pages
+   dentro Workers: il flusso nuovo importa il repo e pubblica con `npx wrangler
+   deploy`, che legge **`frontend/wrangler.jsonc`** (nel repo). Nella schermata di
+   setup: root directory `frontend`, build `npm ci --include=dev && npm run build`,
+   deploy `npx wrangler deploy`.
 
-   Il fallback SPA è `frontend/public/_redirects` (`/* /index.html 200`), necessario
-   perché `/j/<magicToken>` e `/storia` esistono solo nel router Angular.
-4. **Chiudi il cerchio degli origin.** Metti l'URL definitivo di Pages in
+   Il fallback SPA su Workers è `assets.not_found_handling:
+   "single-page-application"` in `wrangler.jsonc` — necessario perché
+   `/j/<magicToken>` e `/storia` esistono solo nel router Angular.
+   `frontend/public/_redirects` resta per un eventuale ritorno a Pages o Netlify.
+4. **Chiudi il cerchio degli origin.** Metti l'URL definitivo del frontend in
    `FRONTEND_ORIGIN` su Render (redeploy automatico) e in
    `frontend/src/environments/environment.prod.ts` (`apiUrl` e `socketUrl` =
-   URL del backend Render), poi commit → Pages ribuilda.
+   URL del backend Render), poi commit → Cloudflare ribuilda.
 5. **Keep-warm.** Su [cron-job.org](https://cron-job.org) (gratis): `GET
    <backend>/health` ogni 10 minuti, **abilitato solo intorno alle serate d'asta**.
    Due ragioni per non lasciarlo sempre acceso: le 750 h/mese di Render coprono a
@@ -197,7 +200,7 @@ modello giusto**. Oracle diventa interessante solo se l'app inizia a girare in c
 
 | Componente | Servizio | Costo | Note |
 |---|---|---|---|
-| Frontend | Cloudflare Pages | €0 | banda illimitata, 500 build/mese |
+| Frontend | Cloudflare Workers (assets) | €0 | richieste agli asset gratuite e illimitate |
 | Backend | Render free web service | €0 | 750 h/mese, spin-down 15', cold start ~1 min |
 | Database | Neon free | €0 | 0.5 GB, 100 CU-h/mese |
 | Keep-warm | cron-job.org | €0 | da tenere spento fuori dalle serate |
