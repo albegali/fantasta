@@ -33,6 +33,7 @@ interface PresenceRow {
             <app-avatar
               [name]="row.participant.name"
               [color]="row.participant.color"
+              [src]="row.participant.avatarUrl"
               [size]="28"
               [online]="row.participant.online"
             />

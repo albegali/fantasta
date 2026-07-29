@@ -38,6 +38,35 @@ export function initialsOf(name: string | null | undefined): string {
   return (name || '?').slice(0, 2).toUpperCase();
 }
 
+/**
+ * L'avatar è il link a un'immagine già online: niente upload, niente storage
+ * (PLAN.md, decisione 3). Il vuoto è valido — è il modo di togliere la foto — e
+ * si accettano solo `http`/`https`, che esclude anche i `data:` URI (un'immagine
+ * travestita da link finirebbe in DB, cioè esattamente quel che si è evitato).
+ * L'ultima parola ce l'ha il DTO del server: qui si evita solo di spedire un URL
+ * a metà mentre l'admin sta ancora digitando.
+ */
+export function isAvatarUrl(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return true;
+  try {
+    const { protocol } = new URL(trimmed);
+    return protocol === 'http:' || protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * L'immagine da disegnare, o `null` per ricadere sulle iniziali. `broken` è l'URL
+ * che non si è caricato: si ricorda **quale**, non un sì/no, così un URL corretto
+ * riprova da sé senza che nessuno debba azzerare niente.
+ */
+export function photoUrl(src: string | null | undefined, broken: string | null): string | null {
+  const url = src?.trim() || null;
+  return url && url !== broken ? url : null;
+}
+
 /** Solo cifre — usato dai campi numerici (i crediti sono interi, AGENTS.md §5). */
 export function digitsOnly(value: string): string {
   return value.replace(/[^0-9]/g, '');

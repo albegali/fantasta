@@ -103,7 +103,11 @@
               {{ release.name }}
             </span>
             <span class="row" style="gap: 6px">
-              <app-avatar [name]="release.teamName" [size]="20" />
+              <app-avatar
+                [name]="release.teamName"
+                [src]="avatarOf(release.participantId)"
+                [size]="20"
+              />
               <span class="hint ellipsis">{{ release.teamName }}</span>
             </span>
           </div>

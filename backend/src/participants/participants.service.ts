@@ -32,7 +32,7 @@ export class ParticipantsService {
         leagueId: league.id,
         name: dto.name?.trim() || 'Nuovo',
         teamName: dto.teamName?.trim() || `Squadra ${count + 1}`,
-        avatarUrl: dto.avatarUrl,
+        avatarUrl: avatarUrl(dto.avatarUrl),
         color: dto.color ?? teamColor(count),
         accessCode: await this.freshCode(league.id),
         magicToken: randomMagicToken(),
@@ -51,7 +51,7 @@ export class ParticipantsService {
       data: {
         ...(dto.name !== undefined ? { name: dto.name } : {}),
         ...(dto.teamName !== undefined ? { teamName: dto.teamName } : {}),
-        ...(dto.avatarUrl !== undefined ? { avatarUrl: dto.avatarUrl } : {}),
+        ...(dto.avatarUrl !== undefined ? { avatarUrl: avatarUrl(dto.avatarUrl) } : {}),
         ...(dto.color !== undefined ? { color: dto.color } : {}),
         ...(dto.budget !== undefined ? { budget: dto.budget } : {}),
       },
@@ -154,4 +154,13 @@ export class ParticipantsService {
     // 32^6 combinazioni: arrivare qui significa che il DB è pieno di squadre.
     throw new Error('Impossibile generare un codice d’accesso libero');
   }
+}
+
+/**
+ * Campo svuotato → `null`, non stringa vuota: togliere la foto è un'operazione
+ * legittima, e in DB «nessun avatar» si scrive in un modo solo (`avatarUrl: null`),
+ * altrimenti `''` passerebbe i controlli del client e proverebbe a caricarsi.
+ */
+function avatarUrl(value: string | undefined): string | null {
+  return value?.trim() || null;
 }

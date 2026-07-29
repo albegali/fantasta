@@ -906,7 +906,7 @@ function buildMockBackend(opts: MockOptions): MockBackend {
           teamName: patch.teamName || 'Squadra senza nome',
           accessCode: randomCode(),
           magicToken: randomMagicToken(),
-          avatarUrl: null,
+          avatarUrl: patch.avatarUrl?.trim() || null,
           color: '#9397ab',
           budget: store.state.rules.budget,
           spent: 0,
@@ -916,7 +916,12 @@ function buildMockBackend(opts: MockOptions): MockBackend {
         store.state.participants.push(created);
         store.state.turnOrder.push(created.id);
       } else {
-        store.state.participants[i] = { ...store.state.participants[i], ...patch };
+        store.state.participants[i] = {
+          ...store.state.participants[i],
+          ...patch,
+          // come il server: campo svuotato = nessun avatar, non stringa vuota
+          ...(patch.avatarUrl !== undefined ? { avatarUrl: patch.avatarUrl?.trim() || null } : {}),
+        };
       }
       pushState();
       return wait(store.state.participants);

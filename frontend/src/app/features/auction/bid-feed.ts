@@ -9,6 +9,7 @@ interface FeedRow {
   id: string;
   name: string;
   color: string | null | undefined;
+  avatarUrl: string | null | undefined;
   text: string;
   amount: number | null;
   mine: boolean;
@@ -42,7 +43,7 @@ const RECENT = 8;
       >
         @for (row of rows(); track row.id) {
           <div class="feed-row" [class.is-mine]="row.mine">
-            <app-avatar [name]="row.name" [color]="row.color" [size]="24" />
+            <app-avatar [name]="row.name" [color]="row.color" [src]="row.avatarUrl" [size]="24" />
             <span class="grow ellipsis" style="font-size: 13px">{{ row.text }}</span>
             @if (row.amount !== null) {
               <span class="feed-amount" [class.is-nominate]="row.type === 'nominate'">{{
@@ -80,6 +81,7 @@ export class BidFeed {
         id: `${entry.at}-${i}`,
         name: who?.name ?? '?',
         color: who?.color,
+        avatarUrl: who?.avatarUrl,
         text:
           entry.type === 'nominate'
             ? `${who?.name} chiama ${lot.player.name}`
@@ -104,6 +106,7 @@ export class BidFeed {
         id: `log-${line.seq}`,
         name: who?.name ?? line.teamName ?? '·',
         color: who?.color,
+        avatarUrl: who?.avatarUrl,
         text: line.note ? `${line.text} · ${line.note}` : line.text,
         amount: line.amount,
         mine: !!myId && entry.participantId === myId,

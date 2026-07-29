@@ -59,6 +59,15 @@ export class ReleasePanel {
     return this.store.releases().filter((r) => r.participantId !== meId);
   });
 
+  /**
+   * `ReleaseEntry` porta il nome squadra denormalizzato ma non la foto (resta
+   * leggibile anche se la squadra sparisce): l'avatar si pesca dal partecipante
+   * se c'è ancora, altrimenti restano le iniziali.
+   */
+  protected avatarOf(participantId: string): string | null | undefined {
+    return this.store.byId(participantId)?.avatarUrl;
+  }
+
   /** La mia rosa per reparto, con la stima del rimborso su ogni riga. */
   protected readonly buckets = computed<RoleBucket[]>(() => {
     const me = this.me();

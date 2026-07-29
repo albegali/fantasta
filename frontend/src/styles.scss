@@ -593,6 +593,12 @@ figure {
   height: var(--avatar-size, 28px);
   font-size: calc(var(--avatar-size, 28px) * 0.39);
 }
+/* la foto usa la stessa classe: cambia solo il ritaglio (l'URL è esterno, le
+   proporzioni sono imprevedibili) */
+img.avatar {
+  object-fit: cover;
+  background: color-mix(in srgb, var(--color-text) 8%, transparent);
+}
 .avatar-wrap {
   position: relative;
   flex: none;

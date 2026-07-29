@@ -30,7 +30,7 @@ Roadmap a fasi. Ogni fase ≈ 1 PR. Spuntare i box a completamento. Le fasi 0–
 ## Fase 3 — Partecipanti
 - [x] CRUD `participants` (nome, teamName, avatarUrl, color, budget, `accessCode`).
 - [x] `POST /participants/:id/regenerate-code` e `POST /participants/:id/regenerate-link`.
-- [ ] Upload avatar (opzionale): su free-tier preferire URL esterno o storage effimero → vedi INFRA.
+- [x] Avatar come **URL esterno** (niente upload, niente storage) — vedi decisione 3.
 - [x] Reset asta (azzera acquisizioni, ripristina budget, riapre i reparti chiusi).
 
 ## Fase 4 — Motore d'asta realtime (core) ⭐
@@ -133,8 +133,32 @@ Pronto nel repo:
 2. - [x] Re-import xlsx a metà asta: *confermato*. L'import aggiorna quotazione/ruolo/FVM,
      non cancella nessun calciatore e non tocca le `Acquisition`; le rose già fatte restano
      valide. Un giocatore già assegnato resta `taken` e non ricompare fra i chiamabili.
-3. - [ ] Storage avatar su free-tier: URL esterno vs. base64 in DB vs. bucket (proposto: URL esterno per restare a costo 0).
-     Oggi `avatarUrl` è una stringa libera e la UI ricade sulle iniziali: nessun upload.
+3. - [x] **Storage avatar: URL esterno.** *Risolta dal maintainer, implementata.* Niente upload
+     e niente bucket: `avatarUrl` è il link a un'immagine **già online**, quindi il costo di
+     esercizio resta zero e non c'è nulla da tenere pulito. Il campo esisteva già in schema,
+     DTO e contratto: mancavano solo un posto per scriverlo e il disegno.
+     - **Lo imposta l'admin**, nella tab Lega, col `PATCH /participants/:id` che c'era già:
+       nessuna rotta nuova e nessuna scrittura REST aperta ai partecipanti (oggi il REST conosce
+       solo l'`ADMIN_TOKEN` — una self-service richiederebbe una guard di sessione).
+     - **Solo `http`/`https`** (`IsAvatarUrl` in `participants/dto/participant.dto.ts`), che
+       esclude i `data:` URI: sarebbero un'immagine travestita da link e riporterebbero in DB
+       esattamente quel che si è scelto di non tenere. Tetto di 2048 caratteri.
+     - **Stringa vuota = togli la foto**: il service la normalizza a `null`, così «nessun
+       avatar» in DB si scrive in un modo solo.
+     - **Foto rotta → iniziali.** L'URL è di terzi e può morire: `shared/avatar.ts` ricade
+       sulle iniziali su `(error)`, e ricorda *quale* URL ha fallito, non un sì/no, così un
+       URL corretto riprova da sé.
+     - Il client valida prima di spedire (`isAvatarUrl` in `shared/ui.ts`) solo per non mandare
+       al server un URL a metà mentre l'admin digita: la parola finale resta del DTO.
+     - **Costo accettato**: la foto la scarica il browser di ogni partecipante da un sito di
+       terzi, che vede i loro IP e può cambiarla dopo. Per otto amici va bene; la tab Lega lo
+       dice a schermo invece di nasconderlo. `referrerpolicy="no-referrer"` sull'`img` per non
+       regalare anche l'URL della sala.
+     - Verifica: 8 casi sul DTO (`participant.dto.spec.ts`), 9 sugli helper puri
+       (`shared/ui.spec.ts`) e 5 sul componente (`shared/avatar.spec.ts` — **primo test con
+       `TestBed`** del frontend: il builder vitest lo regge senza configurazione in più),
+       più un giro end-to-end contro backend e DB reali (URL valido salvato,
+       `data:`/`javascript:`/senza-schema/non-stringa rifiutati con 400, campo svuotato → `null`).
 4. - [x] Parità di offerta simultanea: vince il **primo** che entra nella coda `run()` del
      service; al secondo il motore risponde `BID_TOO_LOW` (o `PLAYER_TAKEN` sugli svincoli).
 

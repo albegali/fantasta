@@ -20,7 +20,7 @@
           [class.is-on]="pickId() === team.id"
           (click)="pick(team.id)"
         >
-          <app-avatar [name]="team.name" [color]="team.color" [size]="30" />
+          <app-avatar [name]="team.name" [color]="team.color" [src]="team.avatarUrl" [size]="30" />
           <span style="min-width: 0">
             <span class="ellipsis" style="display: block; font-weight: 500; font-size: 13px">
               {{ team.teamName }}
@@ -57,7 +57,9 @@
         [style.font-size]="asAdmin() ? '13px' : '18px'"
         [style.letter-spacing]="asAdmin() ? 'normal' : '0.22em'"
         [style.text-align]="asAdmin() ? 'left' : 'center'"
-        [style.font-family]="asAdmin() ? 'ui-monospace, SFMono-Regular, Menlo, monospace' : 'inherit'"
+        [style.font-family]="
+          asAdmin() ? 'ui-monospace, SFMono-Regular, Menlo, monospace' : 'inherit'
+        "
         style="min-height: 46px; font-weight: 600"
       />
     </label>

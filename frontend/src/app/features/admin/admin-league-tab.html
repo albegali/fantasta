@@ -67,7 +67,12 @@
             >
               {{ row.pos }}
             </span>
-            <app-avatar [name]="row.name" [color]="row.participant.color" [size]="32" />
+            <app-avatar
+              [name]="row.name"
+              [color]="row.participant.color"
+              [src]="row.participant.avatarUrl"
+              [size]="32"
+            />
             <span
               class="mono"
               style="font-weight: 600; font-size: 14px; color: var(--color-accent-400)"
@@ -179,6 +184,24 @@
               />
             </div>
           </div>
+
+          <div class="field">
+            <label [attr.for]="'avatar-' + row.participant.id">Avatar · URL immagine</label>
+            <input
+              [id]="'avatar-' + row.participant.id"
+              class="input"
+              type="url"
+              inputmode="url"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="https://esempio.it/stemma.png"
+              [value]="row.avatarUrl"
+              (input)="draft(row.participant.id, 'avatarUrl', $any($event.target).value)"
+            />
+            @if (row.avatarBad) {
+              <span class="hint">Serve un indirizzo che cominci con https:// (o http://).</span>
+            }
+          </div>
         </div>
       }
     </div>
@@ -188,9 +211,15 @@
     </button>
 
     <div class="hint" style="margin-top: 8px">
-      Manda a ciascuno il suo link: chi lo apre entra già come la sua squadra e ci resta anche
-      dopo un ricaricamento. Il codice a 6 caratteri è il piano B, si detta a voce. Rigenerare
-      link o codice spegne il vecchio e fa uscire chi era dentro con quella sessione.
+      Manda a ciascuno il suo link: chi lo apre entra già come la sua squadra e ci resta anche dopo
+      un ricaricamento. Il codice a 6 caratteri è il piano B, si detta a voce. Rigenerare link o
+      codice spegne il vecchio e fa uscire chi era dentro con quella sessione.
+    </div>
+
+    <div class="hint" style="margin-top: 6px">
+      L'avatar è il link a un'immagine già online: non si carica niente qui, quindi la foto la
+      scarica il browser di ogni partecipante da quel sito (che vede i loro indirizzi IP e può
+      cambiarla quando vuole). Campo vuoto = iniziali.
     </div>
   </div>
 </div>

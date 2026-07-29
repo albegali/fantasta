@@ -13,7 +13,7 @@ import { RoleCounters } from '../../shared/role-counters';
     @let turn = participant();
     @if (turn) {
       <div class="panel-md row" style="padding: 10px 12px; border-radius: 10px">
-        <app-avatar [name]="turn.name" [color]="turn.color" [size]="38" />
+        <app-avatar [name]="turn.name" [color]="turn.color" [src]="turn.avatarUrl" [size]="38" />
         <div class="grow">
           <div class="kicker kicker-accent">{{ kicker() }}</div>
           <div class="ellipsis" style="font-size: 15px; font-weight: 500">{{ line() }}</div>

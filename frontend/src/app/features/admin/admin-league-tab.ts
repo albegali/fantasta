@@ -11,7 +11,7 @@ import { Participant } from '../../core/auction-events';
 import { AuctionStore } from '../../core/auction.store';
 import { ApiPort } from '../../core/ports';
 import { Avatar } from '../../shared/avatar';
-import { digitsOnly } from '../../shared/ui';
+import { digitsOnly, isAvatarUrl } from '../../shared/ui';
 
 /** Attesa prima di mandare al server quello che l'admin sta digitando. */
 const DRAFT_FLUSH_MS = 500;
@@ -23,6 +23,7 @@ interface Draft {
   name?: string;
   teamName?: string;
   budget?: string;
+  avatarUrl?: string;
 }
 
 interface Row {
@@ -31,6 +32,10 @@ interface Row {
   name: string;
   teamName: string;
   credits: string;
+  /** URL dell'immagine così come lo sta scrivendo l'admin. */
+  avatarUrl: string;
+  /** Testo in corso non spedibile: il campo lo dice invece di sparire. */
+  avatarBad: boolean;
   code: string;
   /** URL completo del magic link, vuoto se il server non l'ha mandato. */
   link: string;
@@ -76,12 +81,15 @@ export class AdminLeagueTab {
   protected readonly rows = computed<Row[]>(() =>
     this.ordered().map((participant, i) => {
       const draft = this.drafts()[participant.id] ?? {};
+      const avatarUrl = draft.avatarUrl ?? participant.avatarUrl ?? '';
       return {
         participant,
         pos: i + 1,
         name: draft.name ?? participant.name,
         teamName: draft.teamName ?? participant.teamName,
         credits: draft.budget ?? String(participant.budget),
+        avatarUrl,
+        avatarBad: !isAvatarUrl(avatarUrl),
         code: this.showCodes() ? (participant.accessCode ?? '——————') : '••••••',
         link: magicLink(participant),
       };
@@ -123,6 +131,9 @@ export class AdminLeagueTab {
     this.flushTimers.delete(id);
     const draft = this.drafts()[id];
     if (!draft) return;
+    // Un URL a metà non si manda: il server lo rifiuterebbe con un 400 e il campo
+    // tornerebbe indietro senza spiegazioni. Resta in bozza, il resto parte comunque.
+    const avatarOk = draft.avatarUrl == null || isAvatarUrl(draft.avatarUrl);
     await this.api.upsertParticipant({
       id,
       ...(draft.name != null ? { name: draft.name.trim() || 'Senza nome' } : {}),
@@ -130,10 +141,11 @@ export class AdminLeagueTab {
         ? { teamName: draft.teamName.trim() || 'Squadra senza nome' }
         : {}),
       ...(draft.budget != null ? { budget: Number.parseInt(draft.budget, 10) || 0 } : {}),
+      ...(draft.avatarUrl != null && avatarOk ? { avatarUrl: draft.avatarUrl.trim() } : {}),
     });
     this.drafts.update((all) => {
-      const { [id]: _dropped, ...rest } = all;
-      return rest;
+      const { [id]: dropped, ...rest } = all;
+      return avatarOk ? rest : { ...rest, [id]: { avatarUrl: dropped.avatarUrl } };
     });
   }
 

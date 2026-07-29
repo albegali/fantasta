@@ -6,7 +6,12 @@
       [style.box-shadow]="card.mine ? '0 0 0 1px var(--color-accent-700)' : 'var(--shadow-sm)'"
     >
       <div class="row" style="gap: 10px">
-        <app-avatar [name]="card.participant.name" [color]="card.participant.color" [size]="36" />
+        <app-avatar
+          [name]="card.participant.name"
+          [color]="card.participant.color"
+          [src]="card.participant.avatarUrl"
+          [size]="36"
+        />
         <span class="grow">
           <span class="ellipsis" style="display: block; font-weight: 500; font-size: 15px">
             {{ card.participant.teamName }}

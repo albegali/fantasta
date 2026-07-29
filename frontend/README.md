@@ -172,7 +172,7 @@ Il proxy dev è in `proxy.conf.json` (`/rules`, `/players`, `/participants`, `/a
 | GET    | `/players/last-import`        | no  | `{ filename, at, count }` dell'ultimo import |
 | GET    | `/participants`               | no  | lista con rose; `accessCode` e `magicToken` **solo** col token admin |
 | POST   | `/participants`               | sì  | crea partecipante (body `{}` ammesso) → lista aggiornata |
-| PATCH  | `/participants/:id`           | sì  | aggiorna → lista aggiornata |
+| PATCH  | `/participants/:id`           | sì  | aggiorna → lista aggiornata. `avatarUrl` è un URL esterno `http(s)` a un'immagine (niente upload, niente storage): `""` la toglie, un `data:` URI o un URL senza schema è `400` |
 | DELETE | `/participants/:id`           | sì  | rimuovi → lista aggiornata |
 | POST   | `/participants/reset-auction` | sì  | reset asta (rose, budget, reparti chiusi) |
 | POST   | `/participants/:id/regenerate-code` | sì | nuovo codice d'accesso → partecipante. Revoca anche le sessioni aperte di quella squadra |
