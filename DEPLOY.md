@@ -106,6 +106,10 @@ curl -s https://<TUO-BACKEND>.onrender.com/health
 > La prima chiamata dopo 15 minuti di silenzio può prendersi **fino a un minuto**:
 > è lo spin-down del piano free, non un errore. Riprova e risponde subito.
 
+> **Se cambi `render.yaml`** più avanti: l'*Auto Sync* è attivo per default, quindi basta
+> pushare su `main` e Render riapplica il blueprint e ridistribuisce da sé. I valori
+> `sync: false` già inseriti (e i segreti generati) **non** vengono toccati.
+
 ---
 
 ## Passo 3 — Frontend su Cloudflare Pages (~10 min)
@@ -252,6 +256,7 @@ mandalo a te stesso, non nel gruppo dell'asta.
 | Console del browser: *blocked by CORS policy* | idem | idem |
 | Il magic link aperto da zero dà **404** | manca il fallback SPA | `frontend/public/_redirects` deve essere nel repo e la build output dir deve essere `dist/frontend/browser` |
 | L'app carica ma il countdown non parte | il socket non si connette | verifica il test 2 del Passo 4; `socketUrl` in `environment.prod.ts` deve essere **https**, non http |
+| Build Render: `sh: 1: nest: not found` | `NODE_ENV=production` fa omettere a npm le devDependencies, dove sta `@nestjs/cli` | il `buildCommand` in `render.yaml` deve avere **`npm ci --include=dev`** |
 | Deploy Render fallito su `prisma migrate deploy` | `DATABASE_URL` col pooler o senza SSL | usa la stringa **diretta** + `?sslmode=require` (Passo 1) |
 | *Out of memory* nei log Render | 512 MB stretti | aggiungi `NODE_OPTIONS=--max-old-space-size=400` fra le env |
 | Il DB risponde `password authentication failed` dopo mesi | progetto Neon ruotato/sospeso | rigenera la stringa dal dashboard Neon e aggiornala su Render |

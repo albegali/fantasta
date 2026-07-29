@@ -12,7 +12,13 @@ services:
     plan: free # 512 MB / 0.1 CPU, istanza singola: è quel che serve (stato in memoria)
     region: frankfurt # il più vicino ai giocatori: meno latenza sui rilanci
     rootDir: backend
-    buildCommand: npm ci && npx prisma generate && npm run build
+    # `--include=dev` è obbligatorio, non pignoleria: `NODE_ENV=production` (qui sotto,
+    # e comunque il default di Render) fa sì che npm ometta le devDependencies, dove
+    # vivono `@nestjs/cli` (il comando `nest`), `prisma` e `typescript`. Senza,
+    # la build muore con `sh: nest: command not found`.
+    # Le devDependencies restano poi nel container: è ciò che permette a
+    # `npx prisma migrate deploy` di partire senza scaricare la CLI a ogni cold start.
+    buildCommand: npm ci --include=dev && npx prisma generate && npm run build
     # `migrate deploy` gira allo start e non in build: al build non è garantito
     # l'accesso al DB, e a ogni cold-start è un no-op da pochi ms se non c'è
     # niente da migrare.
