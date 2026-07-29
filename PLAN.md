@@ -92,17 +92,30 @@ Pronto nel repo:
       `/j/<magicToken>` aperto da zero prende un 404 dell'hosting.
 - [x] Node pinnato a 22 (`.node-version` in `backend/` e `frontend/`).
 
-Da fare sugli account (serve il repo su GitHub):
-- [ ] Repo su GitHub — Render e Pages deployano da lì.
-- [ ] Progetto Neon + `DATABASE_URL` (stringa **diretta**, non il pooler: `migrate
+**In produzione** (29 luglio 2026):
+- frontend `https://fantasta-auction.albegali89.workers.dev`
+- backend `https://fantasta-auction-api.onrender.com`
+
+- [x] Repo su GitHub (`albegali/fantasta`) — Render e Cloudflare deployano da lì.
+- [x] Progetto Neon + `DATABASE_URL` (stringa **diretta**, non il pooler: `migrate
       deploy` non passa da pgBouncer e un processo unico non ha bisogno di pooling).
-- [ ] Blueprint su Render, poi `FRONTEND_ORIGIN` con il dominio Pages definitivo.
-- [ ] Pages: root `frontend`, output `dist/frontend/browser`; `environment.prod.ts`
-      con l'URL del backend.
+- [x] Blueprint su Render + `FRONTEND_ORIGIN` col dominio definitivo. Due inciampi
+      risolti lungo la strada, entrambi documentati in `DEPLOY.md`:
+      `NODE_ENV=production` fa omettere a `npm ci` le devDependencies (serve
+      `--include=dev`, altrimenti `nest: not found`).
+- [x] Frontend su **Cloudflare Workers static assets**, non Pages: Cloudflare ha
+      unificato i due prodotti, quindi la config sta in `frontend/wrangler.jsonc` e il
+      fallback SPA è `not_found_handling`. Un `public/_redirects` con
+      `/* /index.html 200` fa **fallire** il deploy (Workers lo legge e lo rifiuta
+      come loop infinito): rimosso.
+- [x] Cerchio degli origin chiuso e verificato in produzione: CORS, handshake
+      Socket.IO, rotte profonde (`/storia`, `/j/<token>`) e bundle che punta al
+      backend Render.
 - [ ] Cron keep-warm su `GET /health` ogni 10 min — **obbligatorio in serata** (è
       quel che neutralizza la decisione 17), da tenere **spento** fuori dalle serate:
       750 h/mese su Render e 100 CU-h/mese su Neon non reggono un 24/7 perenne.
-- [ ] Prova end-to-end in produzione con 2 dispositivi prima della serata vera.
+- [ ] Prova end-to-end in produzione con 2 dispositivi prima della serata vera
+      (`DEPLOY.md` Passo 6): listone, squadre, magic link su telefono in rete mobile.
 
 ---
 

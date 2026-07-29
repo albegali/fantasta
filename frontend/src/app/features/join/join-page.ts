@@ -48,14 +48,26 @@ export class JoinPage {
     this.loginError.set('');
   }
 
+  /**
+   * Il **codice squadra** è a 6 caratteri di un alfabeto senza minuscole né 0/O/1/I:
+   * si detta a voce, quindi normalizzarlo aiuta chi lo digita (e il cap a 12 tiene
+   * corto un incolla sbagliato).
+   *
+   * Il **token admin** no: è un segreto generato dalla piattaforma (base64, con
+   * minuscole, `/` e `=`) e va preso **alla lettera**. Normalizzarlo lo distrugge e
+   * l'auth fallisce senza che si capisca perché.
+   */
   protected onCode(value: string): void {
-    this.code.set(value.toUpperCase().slice(0, 12));
+    this.code.set(this.asAdmin() ? value : value.toUpperCase().slice(0, 12));
     this.loginError.set('');
   }
 
   protected toggleAdmin(): void {
     this.asAdmin.update((v) => !v);
     this.pickId.set(null);
+    // Quel che era stato digitato valeva per l'altro percorso: un codice squadra
+    // normalizzato non è un token admin, e viceversa.
+    this.code.set('');
     this.loginError.set('');
   }
 

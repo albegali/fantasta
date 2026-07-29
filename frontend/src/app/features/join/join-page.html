@@ -40,21 +40,25 @@
       <span class="sr-only" style="position: absolute; left: -9999px">
         {{ asAdmin() ? 'Token admin' : 'Codice squadra' }}
       </span>
+      <!--
+        Un campo, due contenuti diversi: il codice squadra è corto e si detta a voce
+        (maiuscole, spaziato, centrato), il token admin è un segreto lungo che si
+        incolla. Da qui l'`autocapitalize` spento e lo stile compatto per l'admin:
+        con `letter-spacing` da codice, 44 caratteri non si leggono.
+      -->
       <input
         class="input"
         [placeholder]="asAdmin() ? 'TOKEN ADMIN' : 'CODICE'"
         [value]="code()"
         (input)="onCode($any($event.target).value)"
-        autocapitalize="characters"
+        [attr.autocapitalize]="asAdmin() ? 'none' : 'characters'"
         autocomplete="off"
         spellcheck="false"
-        style="
-          min-height: 46px;
-          font-size: 18px;
-          letter-spacing: 0.22em;
-          text-align: center;
-          font-weight: 600;
-        "
+        [style.font-size]="asAdmin() ? '13px' : '18px'"
+        [style.letter-spacing]="asAdmin() ? 'normal' : '0.22em'"
+        [style.text-align]="asAdmin() ? 'left' : 'center'"
+        [style.font-family]="asAdmin() ? 'ui-monospace, SFMono-Regular, Menlo, monospace' : 'inherit'"
+        style="min-height: 46px; font-weight: 600"
       />
     </label>
     <button
