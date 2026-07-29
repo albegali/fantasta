@@ -120,6 +120,9 @@ Il timer di rilancio **non** è una env: è la regola di lega `bidTimerSeconds`
 
 ## 6. Deploy step-by-step
 
+> Questa è la sequenza in sintesi. Per la procedura guidata — creazione degli account,
+> ogni campo dei dashboard, verifiche e troubleshooting — vedi [`DEPLOY.md`](./DEPLOY.md).
+
 Prerequisito: il repo su **GitHub** (Render e Cloudflare Pages deployano da lì).
 
 1. **Database — Neon.** Nuovo progetto, regione europea (la stessa area di Render:

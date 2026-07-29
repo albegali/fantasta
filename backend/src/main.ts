@@ -1,3 +1,9 @@
+// Carica `backend/.env` in `process.env`. **Deve restare il primo import**: gli
+// import sono valutati in ordine, e `AuctionGateway` legge gli origin CORS nel
+// suo decoratore, cioè quando il modulo viene importato — non a runtime.
+// In produzione è un no-op innocuo: il file non esiste (Render inietta le env) e
+// dotenv non sovrascrive mai una variabile già presente nell'ambiente.
+import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';

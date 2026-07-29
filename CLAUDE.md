@@ -3,7 +3,8 @@
 > Contesto di progetto per Claude Code / agenti AI. Leggere **sempre** questo file
 > prima di lavorare sul repo. Le regole operative (setup, build, test, stile, PR)
 > sono in [`AGENTS.md`](./AGENTS.md); la roadmap in [`PLAN.md`](./PLAN.md);
-> il deploy in [`INFRA.md`](./INFRA.md).
+> le scelte d'infrastruttura in [`INFRA.md`](./INFRA.md) e la procedura di deploy
+> click-by-click in [`DEPLOY.md`](./DEPLOY.md).
 
 ## 1. Cos'è questo progetto
 
