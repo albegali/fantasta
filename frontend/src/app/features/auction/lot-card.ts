@@ -5,8 +5,9 @@ import { AuctionStore } from '../../core/auction.store';
 import { Avatar } from '../../shared/avatar';
 import { RoleChip } from '../../shared/role-chip';
 import { digitsOnly } from '../../shared/ui';
+import { TimerRing } from './timer-ring';
 
-/** Sotto i 3 secondi il timer cambia colore e passa al decimale. */
+/** Sotto i 3 secondi la card passa al bagliore rosso (come l'anello). */
 const URGENT_SECONDS = 3;
 const QUICK_STEPS = [1, 5, 10] as const;
 
@@ -17,16 +18,18 @@ interface QuickBid {
 }
 
 /**
- * Il lotto aperto: anello del countdown, offerta più alta, controlli di rilancio.
+ * Il lotto aperto: offerta più alta e controlli di rilancio (l'anello del
+ * countdown è in `TimerRing`).
  *
- * È **l'unico** componente che legge `remainingMs`: isolarlo evita di
- * ridisegnare la lista partecipanti quattro volte al secondo
- * (frontend-handoff.md §5).
+ * Il countdown vive nel figlio **per prestazioni**: qui si legge solo
+ * `urgent()`, un booleano che cambia una volta per lotto, non `remainingSeconds`
+ * che cambia quattro volte al secondo. Così un tick non invalida i bottoni di
+ * rilancio né la lista partecipanti (frontend-handoff.md §5).
  */
 @Component({
   selector: 'app-lot-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Avatar, RoleChip],
+  imports: [Avatar, RoleChip, TimerRing],
   templateUrl: './lot-card.html',
 })
 export class LotCard {
@@ -44,17 +47,11 @@ export class LotCard {
     this.store.byId(this.lot()?.bestParticipantId ?? null),
   );
 
-  protected readonly seconds = this.store.remainingSeconds;
-  protected readonly urgent = computed(() => this.seconds() < URGENT_SECONDS);
-
-  protected readonly timerText = computed(() =>
-    this.urgent() ? this.seconds().toFixed(1) : String(Math.ceil(this.seconds())),
-  );
-
-  protected readonly ringPct = computed(() => {
-    const total = this.store.rules()?.bidTimerSeconds ?? 1;
-    return `${Math.max(0, Math.min(100, (this.seconds() / total) * 100))}%`;
-  });
+  /**
+   * Booleano di proposito: un `computed` non propaga se il valore non cambia,
+   * quindi la card si ridisegna al passaggio della soglia e non a ogni tick.
+   */
+  protected readonly urgent = computed(() => this.store.remainingSeconds() < URGENT_SECONDS);
 
   protected readonly quickBids = computed<QuickBid[]>(() => {
     const price = this.lot()?.price ?? 0;

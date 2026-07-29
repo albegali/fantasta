@@ -1,6 +1,6 @@
 # frontend/ — Angular 22 (importato da Claude Design)
 
-UI dell'asta, generata con **Claude Design** (design system **Nocturne**) e portata qui
+UI dell'asta, generata con **Claude Design** e portata qui
 da `Asta Fantacalcio.dc.html` + `mock/`. Il frontend è **"dumb"**: mostra lo stato e invia
 intenzioni; **tutta** la logica d'asta è sul backend (`../AGENTS.md` §1).
 
@@ -30,7 +30,7 @@ prova il flusso senza backend. Il token admin è l'`ADMIN_TOKEN` del backend (ne
 
 ```
 src/
-├── styles.scss                     # token Nocturne + classi d'applicazione
+├── styles.scss                     # token del tema Prato + classi d'applicazione
 ├── environments/                    # useMock, apiUrl, socketUrl
 └── app/
     ├── app.ts|html                  # shell: topbar, nav, toast errorMsg
@@ -49,8 +49,8 @@ src/
     ├── shared/                      # avatar, chip di ruolo, contatori
     └── features/
         ├── join/                    # magic link (`/j/:token`) + accesso a mano
-        ├── auction/                 # TurnBanner, NominateSearch, LotCard, BidFeed, PresenceList,
-        │                            #   FillingPanel, ReleasePanel (riparazione)
+        ├── auction/                 # TurnBanner, NominateSearch, LotCard + TimerRing, BidFeed,
+        │                            #   PresenceList, FillingPanel, ReleasePanel (riparazione)
         ├── roster/                  # la mia rosa
         ├── league/                  # tutte le squadre
         ├── log/                     # telecronaca (+ `log-line.ts`: da fatto a frase)
@@ -62,9 +62,11 @@ Due regole di struttura da non rompere:
 1. **Un solo punto di sostituzione del trasporto.** La UI dipende da `SocketPort` e
    `ApiPort`, mai da `socket.io-client` o da `HttpClient`. Chi risponde lo decide
    `core/providers.ts` leggendo `environment.useMock`.
-2. **Il countdown vive dentro `LotCard`.** È l'unico componente che legge `remainingMs`:
-   così presenze e feed non si ridisegnano quattro volte al secondo. Se ti serve il
-   tempo residuo altrove, fermati e ripensaci.
+2. **Il countdown vive dentro `TimerRing`.** È l'unico componente che legge
+   `remainingSeconds`, che cambia ~4 volte al secondo: così presenze, feed e perfino i
+   bottoni di rilancio non si ridisegnano a ogni tick. `LotCard` ne sa solo la soglia
+   (`urgent()`, un booleano: un `computed` non propaga se il valore non cambia). Se ti serve
+   il tempo residuo altrove, fermati e ripensaci.
 3. **La lista di chiamata la filtra il server.** `NominateSearch` chiede
    `listPlayers({ role: currentRole, available, take })` e mostra quel che torna: non
    ri-filtra e non riordina lato client. A campo vuoto (click/focus) sono i 20 più
@@ -249,10 +251,31 @@ Cosa vive dove:
 - `SESSION_EXPIRED` (scaduta, o credenziali rigenerate dall'admin) è l'unico caso in cui il
   client butta quel che ha salvato e torna all'accesso.
 
-## Design system
+## Design system — **Prato**
 
-Tutti i colori, i font, gli spazi e i raggi vengono dai token Nocturne in `src/styles.scss`
-(`--color-*`, `--font-*`, `--space-*`, `--radius-*`, `--shadow-*`). Regole del sistema:
-niente hex a mano, pulsanti primari **outline** (mai pieni), accento come linea e bagliore
-mai come campitura, gerarchia per dimensione e spazio (i titoli non superano il peso 500).
-Per ritoccare il look si cambiano i token, non i componenti.
+Tutti i colori, i font, gli spazi e i raggi vengono dai token in `src/styles.scss`
+(`--color-*`, `--role-*`, `--font-*`, `--space-*`, `--radius-*`, `--shadow-*`). Per ritoccare
+il look si cambiano i token, **non** i componenti: nei template non c'è un solo hex.
+
+Verde campo come fondo (strisce di taglio d'erba + luce dei riflettori sul `body`, `fixed`
+sotto allo scroll), **lime** da segnaletica come accento e **giallo** da cartellino come
+secondo. Regole:
+
+- Il lime è una **campitura**, non solo una linea: i bottoni di rilancio e la tab attiva sono
+  pieni, e allora il testo sopra è sempre scuro (`--color-bg`). Mai lime su lime.
+- Il **rosso-arancio** (`--color-urgent`) è riservato agli **ultimi 3 secondi** di un lotto.
+  Non è il colore degli errori: un rifiuto del server non è un'emergenza, e se il rosso
+  comparisse anche lì smetterebbe di voler dire «stai per perdere il giocatore». I crediti agli
+  sgoccioli usano il giallo.
+- I ruoli hanno i colori classici del fantacalcio (`--role-p/d/c/a`), tinta piena con il
+  proprio `-fg` scuro: il reparto si riconosce senza leggere la lettera.
+- Titoli in **Bricolage Grotesque** (`--font-display`), peso 700/800 e `letter-spacing`
+  negativo, solo su: titolo dell'asta, nome del calciatore in asta, cifra dell'offerta, timer,
+  bottoni di rilancio, «Tocca a te», nome squadra e crediti nella Rosa, label di nav e tab.
+  Il corpo è **Plus Jakarta Sans** — un display su un paragrafo stanca. Tutto ciò che è
+  numerico va in `tabular-nums`, altrimenti le cifre ballano a ogni tick.
+- Animazioni: cinque keyframes globali (`rilPulse`, `rilPop`, `rilRise`, `rilBlink`,
+  `rilGlow`), solo `transform`/`opacity`/`box-shadow`. Un'animazione CSS non si ri-innesca se
+  l'elemento resta lo stesso: dove serve ripartire a ogni cambio (cifra dell'offerta, card del
+  lotto) il nodo si **ricrea** con `@for` su una lista di un elemento e `track` sul valore.
+  Con `prefers-reduced-motion` le durate crollano e le **infinite si spengono** del tutto.

@@ -59,15 +59,22 @@ export const SEED_PLAYERS: Player[] = [
   { id: 36, name: 'Zirkzee', team: 'Como', role: 'A', quotation: 21 },
 ];
 
+/**
+ * Colori squadra della palette Prato. Sono **fondi** di avatar con le iniziali
+ * scritte in `--color-bg`, quindi vanno tenuti chiari e saturi: qui il rapporto
+ * di contrasto col testo scuro sta fra 5.8 e 12.8. In produzione i colori li
+ * assegna il backend (`rules/league.util.teamColor`), questi valgono solo per il
+ * mock offline.
+ */
 const SEED: ReadonlyArray<readonly [string, string, string, string]> = [
-  ['Ciccio', 'Ajax Bagnoschiuma', '7KQ2MX', '#b5abfc'],
-  ['Marco', 'Bayer Neverlusen', 'P4WZ9A', '#9397ab'],
-  ['Giulia', 'Deportivo La Sosta', 'B3HN6T', '#a7a1db'],
-  ['Ste', 'Manchester Sciupity', 'R8VJ2C', '#cfd3e5'],
-  ['Fede', 'Real Poltrona', 'L5DY7F', '#968ae0'],
-  ['Ale', 'Atletico Ritardo', 'M9XK3S', '#b2b6ca'],
-  ['Vale', 'Panchina Lunga FC', 'T6QW8N', '#d2cefd'],
-  ['Dario', 'Zona Cesarini', 'Z2FP5H', '#7972a9'],
+  ['Ciccio', 'Ajax Bagnoschiuma', '7KQ2MX', '#b4e84f'],
+  ['Marco', 'Bayer Neverlusen', 'P4WZ9A', '#ffd447'],
+  ['Giulia', 'Deportivo La Sosta', 'B3HN6T', '#5ad1ff'],
+  ['Ste', 'Manchester Sciupity', 'R8VJ2C', '#ff6b4a'],
+  ['Fede', 'Real Poltrona', 'L5DY7F', '#cbf080'],
+  ['Ale', 'Atletico Ritardo', 'M9XK3S', '#ffe083'],
+  ['Vale', 'Panchina Lunga FC', 'T6QW8N', '#bfdcc2'],
+  ['Dario', 'Zona Cesarini', 'Z2FP5H', '#7ca98c'],
 ];
 
 export const SEED_PARTICIPANTS: Participant[] = SEED.map(

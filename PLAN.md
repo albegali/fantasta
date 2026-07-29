@@ -120,6 +120,15 @@ Pronto nel repo:
 ---
 
 ## Backlog / nice-to-have
+- [x] **Rebranding visivo — tema "Prato"** (29 luglio 2026): verde campo, lime da segnaletica,
+      giallo da cartellino, ruoli coi colori classici del fantacalcio, titoli in Bricolage
+      Grotesque e corpo in Plus Jakarta Sans, cinque animazioni globali. È **solo frontend** e
+      passa dai token di `styles.scss`: nei componenti non c'è un hex. Regole e motivazioni in
+      `frontend/README.md` §Design system. Due conseguenze strutturali: il countdown è uscito da
+      `LotCard` in `TimerRing` (l'anello si aggiorna 4 volte al secondo e non deve invalidare i
+      bottoni di rilancio) e i nodi che devono ri-animarsi a ogni cambio si ricreano con `@for`
+      su una lista di un elemento. I colori squadra di **produzione** restano quelli che assegna
+      `rules/league.util.teamColor` sul backend: le squadre già in DB tengono i vecchi.
 - [x] Log/telecronaca dell'asta (chi ha comprato cosa e a quanto) — vedi decisione 19.
 - [x] Modalità "riparazione" (mercato invernale) con budget residuo — vedi decisione 20.
 - [x] Autenticazione partecipanti (magic link) invece del solo token condiviso — vedi decisione 21.
