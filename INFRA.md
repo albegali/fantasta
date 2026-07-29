@@ -105,7 +105,7 @@ Vedi `backend/.env.example`; su Render le dichiara `render.yaml`.
 |---|---|
 | `DATABASE_URL` | connection string Neon **diretta**, con `?sslmode=require` |
 | `PORT` | la inietta Render |
-| `FRONTEND_ORIGIN` | origin del frontend per CORS e Socket.IO. **Accetta più valori separati da virgola** (`src/config/cors.ts`): dominio definitivo + anteprime `*.pages.dev` + `localhost:4200` per debuggare contro il backend vero |
+| `FRONTEND_ORIGIN` | origin del frontend per CORS e Socket.IO. **Accetta più valori separati da virgola** (`src/config/cors.ts`): dominio definitivo `*.workers.dev` + `localhost:4200` per debuggare contro il backend vero |
 | `ADMIN_TOKEN` | token condiviso dell'admin: header `x-admin-token` sulle REST **e** token di `auth` sul socket. Senza, nessuno diventa admin |
 | `JWT_SECRET` | firma le sessioni dei partecipanti. **Obbligatoria: senza, il backend non parte.** Cambiarla scollega tutti i telefoni, i magic link restano validi |
 
@@ -123,7 +123,7 @@ Il timer di rilancio **non** è una env: è la regola di lega `bidTimerSeconds`
 > Questa è la sequenza in sintesi. Per la procedura guidata — creazione degli account,
 > ogni campo dei dashboard, verifiche e troubleshooting — vedi [`DEPLOY.md`](./DEPLOY.md).
 
-Prerequisito: il repo su **GitHub** (Render e Cloudflare Pages deployano da lì).
+Prerequisito: il repo su **GitHub** (Render e Cloudflare deployano da lì).
 
 1. **Database — Neon.** Nuovo progetto, regione europea (la stessa area di Render:
    meno latenza per query). Copia la connection string **diretta** (non `-pooler`),
@@ -147,8 +147,9 @@ Prerequisito: il repo su **GitHub** (Render e Cloudflare Pages deployano da lì)
 
    Il fallback SPA su Workers è `assets.not_found_handling:
    "single-page-application"` in `wrangler.jsonc` — necessario perché
-   `/j/<magicToken>` e `/storia` esistono solo nel router Angular.
-   `frontend/public/_redirects` resta per un eventuale ritorno a Pages o Netlify.
+   `/j/<magicToken>` e `/storia` esistono solo nel router Angular. Un
+   `public/_redirects` con la regola classica `/* /index.html 200` **non** va aggiunto:
+   Workers lo valida e lo rifiuta come loop infinito, e il deploy fallisce.
 4. **Chiudi il cerchio degli origin.** Metti l'URL definitivo del frontend in
    `FRONTEND_ORIGIN` su Render (redeploy automatico) e in
    `frontend/src/environments/environment.prod.ts` (`apiUrl` e `socketUrl` =

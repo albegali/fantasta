@@ -15,7 +15,13 @@
     "directory": "./dist/frontend/browser",
     // Il router Angular gestisce /j/<magicToken>, /storia, /rosa, /admin: senza
     // questo, aprire un magic link da zero prenderebbe un 404 di Cloudflare
-    // invece di arrivare al router. È l'equivalente di `_redirects` su Pages.
+    // invece di arrivare al router.
+    //
+    // È **l'unico** modo di ottenerlo qui: Workers valida anche `public/_redirects`,
+    // e la regola classica `/* /index.html 200` viene **rifiutata** come loop
+    // infinito (Workers striscia `.html` e `/index`, quindi `/index.html` ricade
+    // nella stessa regola). Quel file è stato rimosso: se un domani si torna su
+    // Pages o Netlify, va ricreato lì.
     "not_found_handling": "single-page-application"
   }
 }

@@ -147,9 +147,10 @@ curl -s https://<TUO-BACKEND>.onrender.com/health
 5. Apri l'URL: l'app mostra la schermata d'accesso. Il login **non funzionerà ancora**
    — normale, il backend non conosce ancora questo dominio. **Copia l'URL nelle note.**
 
-> Il fallback SPA qui non viene da `_redirects` (quello vale su Pages e Netlify) ma da
-> `"not_found_handling": "single-page-application"` in `wrangler.jsonc`. È ciò che fa
-> funzionare un magic link aperto da zero invece di dare 404.
+> Il fallback SPA qui viene **solo** da `"not_found_handling":
+> "single-page-application"` in `wrangler.jsonc`. Il file `public/_redirects` (che
+> serve su Pages e Netlify) qui va **tenuto fuori**: Workers lo valida e rifiuta la
+> regola classica `/* /index.html 200` come loop infinito, facendo fallire il deploy.
 
 ---
 
@@ -260,7 +261,8 @@ mandalo a te stesso, non nel gruppo dell'asta.
 | La prima apertura gira a vuoto ~1 min | spin-down del piano free | aspetta, o accendi il cron 2 ore prima |
 | Frontend su, ma il login non risponde | `FRONTEND_ORIGIN` non contiene il dominio del frontend | Passo 4a, e ricontrolla la virgola |
 | Console del browser: *blocked by CORS policy* | idem | idem |
-| Il magic link aperto da zero dà **404** | manca il fallback SPA | su Workers serve `"not_found_handling": "single-page-application"` in `frontend/wrangler.jsonc`; su Pages/Netlify serve `frontend/public/_redirects` |
+| Il magic link aperto da zero dà **404** | manca il fallback SPA | su Workers serve `"not_found_handling": "single-page-application"` in `frontend/wrangler.jsonc` |
+| Deploy Cloudflare: `Invalid _redirects configuration … Infinite loop detected` | Workers valida `public/_redirects` e rifiuta `/* /index.html 200` | cancella `frontend/public/_redirects`: su Workers il fallback lo fa `not_found_handling` |
 | L'app carica ma il countdown non parte | il socket non si connette | verifica il test 2 del Passo 4; `socketUrl` in `environment.prod.ts` deve essere **https**, non http |
 | Build Render: `sh: 1: nest: not found` | `NODE_ENV=production` fa omettere a npm le devDependencies, dove sta `@nestjs/cli` | il `buildCommand` in `render.yaml` deve avere **`npm ci --include=dev`** |
 | Deploy Render fallito su `prisma migrate deploy` | `DATABASE_URL` col pooler o senza SSL | usa la stringa **diretta** + `?sslmode=require` (Passo 1) |

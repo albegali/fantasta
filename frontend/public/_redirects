@@ -1,5 +1,0 @@
-# Fallback SPA: il router Angular gestisce /j/<magicToken>, /storia, /rosa, /admin…
-# Senza questa riga un refresh (o l'apertura diretta di un magic link) prende un
-# 404 dell'hosting statico invece di arrivare al router.
-# Formato riconosciuto da Cloudflare Pages e da Netlify.
-/*  /index.html  200
